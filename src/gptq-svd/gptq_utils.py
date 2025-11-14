@@ -74,8 +74,28 @@ def streaming_sketch(
         start += b
     return B, Y
 
+def gptq_ref_fwrd(
+        make_stream,
+        weight_mat,
+        out_weight,
+        quantizer,
+        eps
+        ):
+    m, n = weight_mat.shape
+    device = weight_mat.device
+    dtype = weight_mat.dtype
+    H = torch.zeros(n, n, dtype=dtype, device=device)
+    n_samples = 0
+    for X in make_stream():
+        chunk_samples = X.shape[0]
+        H = H * (n_samples) / (n_samples + chunk_samples) + (1/ (n_samples + chunk_samples)) * X.T @ X
+        n_samples += chunk_samples
+    damp = eps * torch.mean(torch.diagonal(H))
 
-def gptq_fwrd(
+    L = torch.cholesky(H)
+
+
+def gptq_svd_fwrd(
         sketch_dim,
         oversample,
         k_iter,
