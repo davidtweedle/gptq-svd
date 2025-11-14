@@ -104,7 +104,7 @@ def gptq_fwrd(
     _, _, P_jax = jax.scipy.linalg.qr(SVh_jax, pivoting=True, mode='economic')
     P = torch.from_dlpack(P_jax)
     quantizer.init_scale(weight_mat)
-    mask = torch.ones(shape=(n,), dtype=bool, device=weight_mat.device)
+    mask = torch.ones(n, dtype=bool, device=device)
     for i in range(d):
         j = P[i]
         mask[j] = False
