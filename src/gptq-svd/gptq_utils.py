@@ -2,6 +2,7 @@ import torch
 import jax
 import math
 from jax.dlpack import from_dlpack
+import gc
 
 class Quantizer:
 
@@ -223,9 +224,9 @@ if __name__ == '__main__':
         q = Quantizer(per_channel=True, w_bits=4)
 
         gptq_fwrd(
-                sketch_dim=n // 4,
+                sketch_dim=n // 8,
                 oversample=16,
-                k_iter=0,
+                k_iter=2,
                 make_stream=make_stream,
                 weight_mat=weight_mat,
                 out_weight=out_weight,
@@ -244,7 +245,7 @@ if __name__ == '__main__':
         w_diff = torch.norm(weight_mat - out_weight) / torch.norm(weight_mat)
         print(f"Relative weight error ||W - W_q|| / ||W||    = {w_diff.item():.4e}")
         # Baseline: plain quantization with no GPTQ corrections
-        q_baseline = Quantizer(per_channel=True, w_bits=2)
+        q_baseline = Quantizer(per_channel=True, w_bits=4)
         q_baseline.init_scale(weight_mat_original := weight_mat.clone())
         W_plain_q = q_baseline.quantize(weight_mat_original)
         Y_plain_q = X @ W_plain_q.T
@@ -258,3 +259,8 @@ if __name__ == '__main__':
         print(f"Rel output error (plain) = {rel_err_plain.item():.4e}")
         print(f"Max output error (plain)  = {max_err_plain.item():.4e}")
         print(f"Rel weight error (plain)  = {w_rel_plain.item():.4e}")
+        del X, W_plain_q, weight_mat, weight_mat_original
+        del out_weight, Y_full, Y_quant, Y_plain_q
+        del diff_plain
+        gc.collect()
+        torch.cuda.empty_cache()
