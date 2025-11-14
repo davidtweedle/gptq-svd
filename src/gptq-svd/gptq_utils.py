@@ -139,7 +139,7 @@ def gptq_fwrd(
 if __name__ == '__main__':
     torch.manual_seed(0)
 
-    num_samples = 8192
+    num_samples = 1024 ** 2
     n = 1024
     m = 1024
     device = torch.device("cpu")
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     weight_mat = torch.randn(m, n, device=device, dtype=dtype)
     out_weight = torch.zeros_like(weight_mat)
 
-    batch_size = 128
+    batch_size = 1024
 
     def make_stream():
         for i in range(0, num_samples, batch_size):
