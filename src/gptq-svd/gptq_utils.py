@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     Y_full = X @ weight_mat.T
 
-    q = Quantizer(per_channel=True, w_bits=4)
+    q = Quantizer(per_channel=True, w_bits=3)
 
     gptq_fwrd(
             oversample=8,
