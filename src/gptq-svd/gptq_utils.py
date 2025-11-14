@@ -75,30 +75,34 @@ def streaming_sketch(
 
 
 def gptq_fwrd(
+        sketch_dim,
         oversample,
         k_iter,
         make_stream,
         weight_mat,
         out_weight,
-        quantizer
+        quantizer,
+        eps,
         ):
     m, n = weight_mat.shape
     device = weight_mat.device
     dtype = weight_mat.dtype
-    d = int(max(math.sqrt(n), 1))
     # first compute sketch of input_stream
     B, _ = streaming_sketch(
             make_stream,
             n,
-            d,
+            sketch_dim,
             oversample,
             k_iter,
             device=device,
             dtype=dtype
             )
-    B = B.to(torch.float32)
+    # B = B.to(torch.float32)
     U_tilde, S, Vh = torch.linalg.svd(B, full_matrices=False)
+    d = torch.count_nonzero(S >= eps)
     U_tilde, S, Vh = U_tilde[:, :d], S[:d], Vh[:d]
+
+    
     SVh = torch.diag(S) @ Vh
     SVh_jax = from_dlpack(SVh)
     _, _, P_jax = jax.scipy.linalg.qr(SVh_jax, pivoting=True, mode='economic')
@@ -115,6 +119,7 @@ def gptq_fwrd(
         c = Up.T @ u_j
         c_scaled = c / Sp
         delta_mask = (weight_mat[:, j: j + 1] - q_j) * (Vph.T @ c_scaled)
+        print(f"Shapes: {c_scaled.shape}, {delta_mask.shape}")
         full_delta = torch.zeros_like(weight_mat)
         full_delta[:, mask] = delta_mask
         weight_mat += full_delta.to(dtype)
