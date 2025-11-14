@@ -141,8 +141,8 @@ if __name__ == '__main__':
 
     num_samples = 1024 ** 2
     n = 1024
-    m = 1024
-    device = torch.device("cpu")
+    m = 256
+    device = torch.device("cuda")
     dtype = torch.float32
     X = torch.randn(num_samples, n, device=device, dtype=dtype)
     weight_mat = torch.randn(m, n, device=device, dtype=dtype)
