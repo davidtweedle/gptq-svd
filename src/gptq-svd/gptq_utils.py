@@ -145,7 +145,7 @@ if __name__ == '__main__':
     device = torch.device("cpu")
     dtype = torch.float32
     X = torch.randn(num_samples, n, device=device, dtype=dtype)
-    weight_mat = torch.randn(m_out, n, device=device, dtype=dtype)
+    weight_mat = torch.randn(m, n, device=device, dtype=dtype)
     out_weight = torch.zeros_like(weight_mat)
 
     batch_size = 128
