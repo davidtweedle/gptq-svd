@@ -1,7 +1,7 @@
 import torch
 import jax
 import math
-from jax.dlpack import from_dlpack, to_dlpack
+from jax.dlpack import from_dlpack
 
 class quantizer:
 
@@ -102,7 +102,7 @@ def gptq_fwrd(
     SVh = torch.diag(S) @ Vh
     SVh_jax = from_dlpack(torch.utils.dlpack.to_dlpack(SVh))
     _, _, P_jax = jax.scipy.linalg.qr(SVh_jax, pivoting=True, mode='economic')
-    P = torch.from_dlpack(to_dlpack(P_jax))
+    P = torch.from_dlpack(P_jax)
     quantizer.init_scale(weight_mat)
     mask = torch.ones(shape=(n,), dtype=bool, device=weight_mat.device)
     for i in range(d):
