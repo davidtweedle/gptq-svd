@@ -177,3 +177,18 @@ if __name__ == '__main__':
     # Also check weight error
     w_diff = torch.norm(weight_mat - out_weight) / torch.norm(weight_mat)
     print(f"Relative weight error ||W - W_q|| / ||W||    = {w_diff.item():.4e}")
+    # Baseline: plain quantization with no GPTQ corrections
+    q_baseline = Quantizer(per_channel=True, w_bits=4)
+    q_baseline.init_scale(weight_mat_original := weight_mat.clone())
+    W_plain_q = q_baseline.quantize(weight_mat_original)
+    Y_plain_q = X @ W_plain_q.T
+
+    diff_plain = Y_full - Y_plain_q
+    rel_err_plain = torch.norm(diff_plain) / torch.norm(Y_full)
+    max_err_plain = diff_plain.abs().max()
+    w_rel_plain = torch.norm(weight_mat_original - W_plain_q) / torch.norm(weight_mat_original)
+
+    print("=== Plain quantization baseline ===")
+    print(f"Rel output error (plain) = {rel_err_plain.item():.4e}")
+    print(f"Max output error (plain)  = {max_err_plain.item():.4e}")
+    print(f"Rel weight error (plain)  = {w_rel_plain.item():.4e}")
