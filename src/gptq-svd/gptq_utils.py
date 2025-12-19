@@ -113,7 +113,7 @@ def gptq_ref_fwrd(
             w = W1[:, i]
             d = Hinv1[i, i]
             q = quantizer.quantize(w)
-            Q1[:, i] = q
+            Q1[:, i] = q.flatten()
             Losses1[:, i] = (w - q) ** 2 / d ** 2
             err1 = (w - q) / d
             W1[:, i:] -= err1.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
