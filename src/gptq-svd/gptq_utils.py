@@ -79,7 +79,7 @@ def gptq_ref_fwrd(
         weight_mat,
         out_weight,
         quantizer,
-        eps
+        blocksize,
         ):
     m, n = weight_mat.shape
     device = weight_mat.device
@@ -90,9 +90,41 @@ def gptq_ref_fwrd(
         chunk_samples = X.shape[0]
         H = H * (n_samples) / (n_samples + chunk_samples) + (1/ (n_samples + chunk_samples)) * X.T @ X
         n_samples += chunk_samples
-    damp = eps * torch.mean(torch.diagonal(H))
+    percdamp = 0.01
+    diag = H.diagonal()
+    mean = torch.mean(diag)
 
-    L = torch.cholesky(H)
+    diag.add_(percdamp * mean)
+    H2 = torch.linalg.cholesky(H)
+    Hinv = torch.linalg.cholesky(torch.cholesky_inverse(H2), upper=True)
+    del H2
+    W = weight_mat.clone()
+    quantizer.init_scale(W)
+    Losses = torch.zeros_like(W)
+    for i1 in range(0, n, blocksize): 
+        i2 = min(i1 + blocksize, n)
+        count = i2 - i1
+        W1 = W[:, i1:i2].clone()
+        Q1 = torch.zeros_like(W1)
+        Err1 = torch.zeros_like(W1)
+        Losses1 = torch.zeros_like(W1)
+        Hinv1 = Hinv[i1:i2, i1:i2]
+        for i in range(count):
+            w = W1[:, i]
+            d = Hinv1[i, i]
+            q = quantizer.quantize(w)
+            Q1[:, i] = q
+            Losses1[:, i] = (w - q) ** 2 / d ** 2
+            err1 = (w - q) / d
+            W1[:, i:] -= err1.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
+            Err1[:, i] = err1
+        out_weight[:, i1:i2] = Q1
+        Losses[:, i1:i2] = Losses1 / 2
+        W[:, i2:] -= Err1.matmul(Hinv[i1:i2, i2:])
+    avg_loss = torch.sum(Losses).item() / nsamples
+    print(f"Losses sum item: {torch.sum(Losses).item()}")
+    print(f"Average loss: {avg_loss}")
+
 
 
 def gptq_svd_fwrd(
@@ -128,24 +160,25 @@ def gptq_svd_fwrd(
     SVh_jax = from_dlpack(SVh)
     _, _, P_jax = jax.scipy.linalg.qr(SVh_jax, pivoting=True, mode='economic')
     P = torch.from_dlpack(P_jax)
-    quantizer.init_scale(weight_mat)
+    W = weight_mat.clone()
+    quantizer.init_scale(W)
     mask = torch.ones(n, dtype=bool, device=device)
     for i in range(d):
         j = P[i]
         mask[j] = False
         SVh_mask = SVh[:, mask]
         Up, Sp, Vph = torch.linalg.svd(SVh_mask, full_matrices=False)
-        q_j = quantizer.quantize(weight_mat[:, j: j + 1])
+        q_j = quantizer.quantize(W[:, j: j + 1])
         u_j = U_tilde.T @ B[:, j]
         c = Up.T @ u_j
         c_scaled = c / Sp
-        delta_mask = (weight_mat[:, j: j + 1] - q_j) * (Vph.T @ c_scaled)
-        full_delta = torch.zeros_like(weight_mat)
+        delta_mask = (W[:, j: j + 1] - q_j) * (Vph.T @ c_scaled)
+        full_delta = torch.zeros_like(W)
         full_delta[:, mask] = delta_mask
-        weight_mat += full_delta.to(dtype)
+        W += full_delta.to(dtype)
         out_weight[:, j: j + 1] = q_j
 
-    out_weight[:, mask] = quantizer.quantize(weight_mat[:, mask])
+    out_weight[:, mask] = quantizer.quantize(W[:, mask])
 
 def make_ar1_cholesky(n, rho=0.9, device="cuda", dtype=torch.float32):
     idx = torch.arange(n, device=device)
@@ -240,11 +273,11 @@ if __name__ == '__main__':
             for i in range(0, num_samples, batch_size):
                 yield X[i : i + batch_size]
 
-        Y_full = X @ weight_mat.T
+        Y_full = X @ W0.T
 
-        q = Quantizer(per_channel=True, w_bits=2)
+        q = Quantizer(per_channel=True, w_bits=4)
 
-        gptq_fwrd(
+        gptq_svd_fwrd(
                 sketch_dim=4 * n,
                 oversample=16,
                 k_iter=2,
@@ -254,19 +287,40 @@ if __name__ == '__main__':
                 quantizer=q,
                 eps=1e-2
                 )
-        Y_quant = X @ out_weight.T
+        Y_quant_svd = X @ out_weight.T
 
-        diff = Y_full - Y_quant
-        rel_err = torch.norm(diff) / torch.norm(Y_full)
-        max_err = diff.abs().max()
-        print(f"Relative output error ||XW - XW_q|| / ||XW|| = {rel_err.item():.4e}")
-        print(f"Max absolute entrywise error on outputs      = {max_err.item():.4e}")
+        diff_svd = Y_full - Y_quant_svd
+        rel_err_svd = torch.norm(diff_svd) / torch.norm(Y_full)
+        max_err_svd = diff_svd.abs().max()
+        print("SVD Errors:\n"}
+        print(f"Relative output error ||XW - XW_q|| / ||XW|| = {rel_err_svd.item():.4e}")
+        print(f"Max absolute entrywise error on outputs      = {max_err_svd.item():.4e}")
+        weight_mat_ref = W0.clone()
+        q_ref = Quantizer(per_channel=True, w_bits=4)
+        out_weight_ref = torch.zeros_like(weight_mat_ref)
+
+        gptq_ref_fwrd(
+                make_stream=make_stream,
+                weight_mat=weight_mat_ref,
+                out_weight=out_weight_ref,
+                quantizer=q_ref,
+                blocksize=128,
+                )
+        Y_quant_ref = X @ out_weight_ref.T
+
+        diff_ref = Y_full - Y_quant_ref
+        rel_err_ref = torch.norm(diff_ref) / torch.norm(Y_full)
+        max_err_ref = diff_ref.abs().max()
+        print("Reference GPTQ errors")
+        print(f"Relative output error ||XW - XW_q|| / ||XW|| = {rel_err_ref.item():.4e}")
+        print(f"Max absolute entrywise error on outputs      = {max_err_ref.item():.4e}")
+
 
         # Also check weight error
-        w_diff = torch.norm(weight_mat - out_weight) / torch.norm(weight_mat)
-        print(f"Relative weight error ||W - W_q|| / ||W||    = {w_diff.item():.4e}")
+        w_diff_ref = torch.norm(W0 - out_weight_ref) / torch.norm(W0)
+        print(f"Relative weight error ||W - W_q|| / ||W||    = {w_diff_ref.item():.4e}")
         # Baseline: plain quantization with no GPTQ corrections
-        q_baseline = Quantizer(per_channel=True, w_bits=2)
+        q_baseline = Quantizer(per_channel=True, w_bits=4)
         q_baseline.init_scale(weight_mat_original := W0.clone())
         W_plain_q = q_baseline.quantize(weight_mat_original)
         Y_plain_q = X @ W_plain_q.T
