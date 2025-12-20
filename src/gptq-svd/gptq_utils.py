@@ -279,13 +279,13 @@ if __name__ == '__main__':
 
         gptq_svd_fwrd(
                 sketch_dim=4 * n,
-                oversample=16,
-                k_iter=2,
+                oversample=64,
+                k_iter=5,
                 make_stream=make_stream,
                 weight_mat=weight_mat,
                 out_weight=out_weight,
                 quantizer=q,
-                eps=1e-2
+                eps=1e-5
                 )
         Y_quant_svd = X @ out_weight.T
 
