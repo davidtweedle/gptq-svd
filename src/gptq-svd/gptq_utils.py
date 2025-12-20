@@ -296,7 +296,7 @@ if __name__ == '__main__':
         print(f"Relative output error ||XW - XW_q|| / ||XW|| = {rel_err_svd.item():.4e}")
         print(f"Max absolute entrywise error on outputs      = {max_err_svd.item():.4e}")
         w_diff_svd = torch.norm(W0 - out_weight) / torch.norm(W0)
-        print(f"Relative weight error ||W - W_q|| / ||W||    = {w_diff_ref.item():.4e}")
+        print(f"Relative weight error ||W - W_q|| / ||W||    = {w_diff_svd.item():.4e}")
         weight_mat_ref = W0.clone()
         q_ref = Quantizer(per_channel=True, w_bits=8)
         out_weight_ref = torch.zeros_like(weight_mat_ref)
