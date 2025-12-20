@@ -24,6 +24,7 @@ class Quantizer:
 
     def quantize(self, weights):
         # assumes q is of shape (m, 1) or (m, n)
+        print(f"Weights size: {weights.shape}, scale size: {self.scale.shape}")
         q = torch.round(torch.clamp(weights / self.scale, min=self.min_val, max=self.max_val))
         return q * self.scale
 
