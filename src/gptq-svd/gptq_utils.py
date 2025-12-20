@@ -112,7 +112,7 @@ def gptq_ref_fwrd(
         for i in range(count):
             w = W1[:, i]
             d = Hinv1[i, i]
-            q = quantizer.quantize(w.unflatten(1)).flatten()
+            q = quantizer.quantize(w.unflatten(dim=1, sizes=(-1, 1))).flatten()
             print(f"Shapes: w: {w.shape}, q: {q.shape}, Q1[:,i]: {Q1[:, i].shape}")
             Q1[:, i] = q.flatten()
             Losses1[:, i] = (w - q) ** 2 / d ** 2
