@@ -280,7 +280,7 @@ if __name__ == '__main__':
         gptq_svd_fwrd(
                 sketch_dim=4*n,
                 oversample=0,
-                k_iter=2,
+                k_iter=0,
                 make_stream=make_stream,
                 weight_mat=weight_mat,
                 out_weight=out_weight,
