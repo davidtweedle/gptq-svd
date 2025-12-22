@@ -296,14 +296,14 @@ def run_tuning_grid(
     norm_Y_true = torch.norm(Y_true)
     param_grid_main = {
             'sketch_ratio': [0.1, 0.5, 1.0, 2.0],
-            'k_iter': [0, 1, 2, 5],
-            'eps': [1e-1, 1e-2, 1e-4, 1e-8],
+            'k_iter': [0, 1, 2],
+            'eps': [1e-2, 1e-4, 1e-8],
             'oversample': [16],
             'test_sketch': [False]
             }
     param_grid_test = {
-            'sketch_ratio': [0.1, 0.5, 1.0, 2.0],
-            'eps': [1e-1, 1e-2, 1e-4, 1e-8],
+            'sketch_ratio': [1.0, 2.0, 4.0, 8.0],
+            'eps': [1e-2, 1e-4, 1e-8],
             'test_sketch': [True]
             }
 
