@@ -290,7 +290,7 @@ def run_tuning_grid(
     print(f"--- Starting hyperparam tuning (N={n}, M={m}) ---")
     dtype = torch.float32
     X = make_X(n_samples, n, mode="gaussian_corr", rho=0.9, nu=3.0, device=device, dtype=dtype)
-    W = torch.randn(m, n device=device, dtype=dtype)
+    W = torch.randn(m, n, device=device, dtype=dtype)
 
     Y_true = X @ W.T
     norm_Y_true = torch.norm(Y_true)
