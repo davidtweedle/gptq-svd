@@ -369,7 +369,7 @@ def run_tuning_grid(
     for r in results[:5]:
         method = "TEST" if r['test_sketch'] else "MAIN"
         k_val = r.get('k_iter', '-')
-        print(f"{method:<6} | {r['sketch_ratio']:<6} | {k_val}:<6} | {r['eps']:<8} | {r['rel_err']:.5e}")
+        print(f"{method:<6} | {r['sketch_ratio']:<6} | {k_val:<6} | {r['eps']:<8} | {r['rel_err']:.5e}")
 
     return results
 
