@@ -14,7 +14,7 @@ def main():
     model, tokenizer = model_utils.get_model(args.model_id, args.device)
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
-    inps, outs, attention_mask, position_ids = model_utils.capture_initial_inputs(
+    inps, outs, layer_kwargs = model_utils.capture_initial_inputs(
             model, input_ids_list, args.device
             )
     layers = model_utils.get_layers(model)
@@ -25,12 +25,14 @@ def main():
             inp = input[0].detach()
             if len(inp.shape) == 3:
                 inp = inp.squeeze(0)
+            inp_cpu = inp.to("cpu", non_blocking=True).clone()
             if name not in layer_inputs:
                 layer_inputs[name] = []
-            layer_inputs[name].append(inp)
+            layer_inputs[name].append(inp_cpu)
         return hook
 
     for i, layer in enumerate(layers):
+        print(f"Processing Layer {i}/{len(layers)}...")
         layer = layer.to(args.device)
 
         subset = model_utils.find_linear_layers(layer)
@@ -39,12 +41,16 @@ def main():
             handles.append(subset[name].register_forward_hook(add_batch(name)))
 
         for j in range(args.n_samples):
+            inp_batch = inps[j].to(args.device).unsqueeze(0)
+            batch_kwargs = {}
+            if layer_kwargs:
+                for k, v in layer_kwargs.items():
+                    if isinstance(v, torch.Tensor):
+                        batch_kwargs[k] = v.to(args.device)
+                    else:
+                        batch_kwargs[k] = v
             with torch.no_grad():
-                layer(
-                        inps[j].unsqueeze(0),
-                        attention_mask=attention_mask,
-                        position_ids=position_ids
-                        )
+                layer(inp_batch, **batch_kwargs)
         for h in handles:
             h.remove()
 
@@ -81,13 +87,18 @@ def main():
             del X_list, layer_inputs[name]
             gc.collect()
         for j in range(args.n_samples):
+            inp_batch = inps[j].to(args.device).unsqueeze(0)
+            batch_kwargs = {}
+            if layer_kwargs:
+                for k, v in layer_kwargs.items():
+                    if isinstance(v, torch.Tensor):
+                        batch_kwargs[k] = v.to(args.device)
+                    else:
+                        batch_kwargs[k] = v
             with torch.no_grad():
-                outs[j] = layer(
-                        inps[j].unsqueeze(0),
-                        attention_mask=attention_mask,
-                        position_ids=position_ids
-                        )[0]
+                outs[j] = layer(inp_batch, **batch_kwargs)[0].to("cpu")
         inps, outs = outs, inps
+        layer = layer.to("cpu")
         torch.cuda.empty_cache()
 
     print(f"Saving model to {args.save_path}...")
