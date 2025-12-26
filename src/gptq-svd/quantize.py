@@ -71,8 +71,12 @@ def main():
                         batch_kwargs[k] = v
             batch_kwargs["use_cache"] = False
             layer(inp_batch, **batch_kwargs)
+            del inp_batch, batch_kwargs
         for h in handles:
             h.remove()
+        cleanup()
+
+        new_weights_buffer = {}
 
         for name, submodule in subset.items():
             print(f"Quantizing {name}")
@@ -103,7 +107,9 @@ def main():
                     update_block_size=64
                     )
 
-            submodule.weight.copy_(out_weight)
+            new_weights_buffer[name] = out_weight.to(submodule.weight.data.dtype).to("cpu")
+            del out_weight, W, quantizer
+
 
             del X_list, layer_inputs[name]
             cleanup()
@@ -121,8 +127,12 @@ def main():
                         batch_kwargs[k] = v
             batch_kwargs['use_cache'] = False
             outs[j] = layer(inp_batch, **batch_kwargs)[0].to("cpu")
+            del inp_batch, batch_kwargs
         inps, outs = outs, inps
         layer = layer.to("cpu")
+        for name, new_weight in new_weights_buffer.items():
+            subset[name].weight.copy_(new_weight)
+        del new_weights_buffer
         cleanup()
 
     print(f"Saving model to {args.save_path}...")
