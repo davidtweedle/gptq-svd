@@ -109,10 +109,13 @@ def main():
 
             new_weights_buffer[name] = out_weight.to(submodule.weight.data.dtype).to("cpu")
             del out_weight, W, quantizer
-
-
             del X_list, layer_inputs[name]
             cleanup()
+        layer_inputs.clear()
+        cleanup()
+        layer = layer.to("cpu")
+        cleanup()
+        layer = layer.to(args.device)
         for j in range(args.n_samples):
             inp_batch = inps[j].to(args.device).unsqueeze(0)
             batch_kwargs = {}
