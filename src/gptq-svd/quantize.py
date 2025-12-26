@@ -32,7 +32,7 @@ def main():
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
     inps, outs, layer_kwargs = model_utils.capture_initial_inputs(
-            model, input_ids_list, args.device
+            model, input_ids_list, device="cpu"
             )
     layers = model_utils.get_layers(model)
 
@@ -70,14 +70,14 @@ def main():
                 submodule = get_submodule(layer, name)
                 handles.append(submodule.register_forward_hook(add_batch(name)))
             for j in range(args.n_samples):
-                inp_batch = inps[j].to(args.device).unsqueeze(0)
+                inp_batch = inps[j].to(args.device, non_blocking=True).unsqueeze(0)
                 batch_kwargs = {}
                 if layer_kwargs:
                     for k, v in layer_kwargs.items():
                         if isinstance(v, torch.Tensor):
-                            batch_kwargs[k] = v.to(args.device)
+                            batch_kwargs[k] = v.to(args.device, non_blocking=True)
                         elif isinstance(v, (tuple, list)):
-                            moved_list = [x.to(args.device) if isinstance(x, torch.Tensor) else x for x in v ]
+                            moved_list = [x.to(args.device, non_blocking=True) if isinstance(x, torch.Tensor) else x for x in v ]
                             batch_kwargs[k] = tuple(moved_list) if isinstance(v, tuple) else moved_list
                         else:
                             batch_kwargs[k] = v
@@ -126,19 +126,19 @@ def main():
             cleanup()
             layer = layer.to(args.device)
         for j in range(args.n_samples):
-            inp_batch = inps[j].to(args.device).unsqueeze(0)
+            inp_batch = inps[j].to(args.device, non_blocking=True).unsqueeze(0)
             batch_kwargs = {}
             if layer_kwargs:
                 for k, v in layer_kwargs.items():
                     if isinstance(v, torch.Tensor):
-                        batch_kwargs[k] = v.to(args.device)
+                        batch_kwargs[k] = v.to(args.device, non_blocking=True)
                     elif isinstance(v, (tuple, list)):
-                        moved_list = [x.to(args.device) if isinstance(x, torch.Tensor) else x for x in v]
+                        moved_list = [x.to(args.device, non_blocking=True) if isinstance(x, torch.Tensor) else x for x in v]
                         batch_kwargs[k] = tuple(moved_list) if isinstance(v, tuple) else moved_list
                     else:
                         batch_kwargs[k] = v
             batch_kwargs['use_cache'] = False
-            outs[j] = layer(inp_batch, **batch_kwargs)[0].to("cpu")
+            outs[j] = layer(inp_batch, **batch_kwargs)[0].to("cpu", non_blocking=True)
             del inp_batch, batch_kwargs
         inps, outs = outs, inps
         layer = layer.to("cpu")
