@@ -100,7 +100,8 @@ def main():
                     eps=args.eps
                     )
 
-            submodule.weight.copy_(out_weight)
+            with torch.no_grad():
+                submodule.weight.copy_(out_weight)
 
             del X_list, layer_inputs[name]
             cleanup()
