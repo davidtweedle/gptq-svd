@@ -182,6 +182,7 @@ def gptq_svd_fwrd(
         out_weight,
         quantizer,
         eps,
+        update_block_size=64,
         ):
     m, n = weight_mat.shape
     device = weight_mat.device
@@ -209,20 +210,22 @@ def gptq_svd_fwrd(
     W = weight_mat.clone()
     quantizer.init_scale(W)
     mask = torch.ones(n, dtype=bool, device=device)
-    for i in range(d):
-        j = P[i]
-        mask[j] = False
-        SVh_mask = SVh[:, mask]
+    for i in range(0, d, update_block_size):
+        end_idx = min(i + update_block_size, d)
+        cur_cols = P[i : end_idx]
+        mask[cur_cols] = False
+        SVh_mask = Svh[:, mask]
         Up, Sp, Vph = torch.linalg.svd(SVh_mask, full_matrices=False)
-        q_j = quantizer.quantize(W[:, j: j + 1])
-        u_j = U_tilde.T @ B[:, j]
-        c = Up.T @ u_j
-        c_scaled = c / Sp
-        delta_mask = (W[:, j: j + 1] - q_j) * (Vph.T @ c_scaled)
-        full_delta = torch.zeros_like(W)
-        full_delta[:, mask] = delta_mask
-        W += full_delta.to(dtype)
-        out_weight[:, j: j + 1] = q_j
+        w_block = W[:, cur_cols]
+        q_block = quantizer.quantize(w_block)
+        out_weight[:, current_cols] = q_block
+        err_block = w_block - q_block
+        u_block = U_tilde.T @ B[:, cur_cols]
+        c = Up.T @ u_block
+        c_scaled = c / Sp.unsqueeze(1)
+        K = Vph.T @ c_scaled
+        delta = err_block @ K.T
+        W[:, mask] += delta.to(dtype)
 
     out_weight[:, mask] = quantizer.quantize(W[:, mask])
 
