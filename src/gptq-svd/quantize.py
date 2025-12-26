@@ -1,5 +1,6 @@
 import os
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 
 import torch
 import gc
@@ -121,9 +122,9 @@ def main():
                 cleanup()
             layer_inputs.clear()
             cleanup()
-        layer = layer.to("cpu")
-        cleanup()
-        layer = layer.to(args.device)
+            layer = layer.to("cpu")
+            cleanup()
+            layer = layer.to(args.device)
         for j in range(args.n_samples):
             inp_batch = inps[j].to(args.device).unsqueeze(0)
             batch_kwargs = {}
