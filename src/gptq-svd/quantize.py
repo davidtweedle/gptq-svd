@@ -32,7 +32,7 @@ def main():
 #    if next(model.parameters()).device.type != 'cpu':
 #        print("Warning: Model on GPU. Moving to CPU to save VRAM.")
 #        model.to("cpu")
-#    cleanup()
+    cleanup()
 
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
