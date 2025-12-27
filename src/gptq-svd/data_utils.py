@@ -28,6 +28,9 @@ def get_wikitext2(tokenizer, n_samples, seq_len):
         chunk = encodings.input_ids[:, start:end].clone()
         input_ids_list.append(chunk)
     print(f"[Data] Collected {len(input_ids_list)} samples of length {seq_len}")
+    del encodings
+    import gc
+    gc.collect()
     return input_ids_list
 
 
