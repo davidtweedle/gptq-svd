@@ -90,9 +90,9 @@ def main():
                 if layer_kwargs:
                     for k, v in layer_kwargs.items():
                         if isinstance(v, torch.Tensor):
-                            batch_kwargs[k] = v.to(args.device)
+                            batch_kwargs[k] = v.detach().clone().to(args.device)
                         elif isinstance(v, (tuple, list)):
-                            moved_list = [x.to(args.device) if isinstance(x, torch.Tensor) else x for x in v ]
+                            moved_list = [x.detach().clone().to(args.device) if isinstance(x, torch.Tensor) else x for x in v ]
                             batch_kwargs[k] = tuple(moved_list) if isinstance(v, tuple) else moved_list
                         else:
                             batch_kwargs[k] = v
