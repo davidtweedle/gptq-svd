@@ -52,9 +52,10 @@ def main():
             inp = input[0].detach()
             if len(inp.shape) == 3:
                 inp = inp.squeeze(0)
+            inp_cpu = inp.to("cpu", non_blocking=True)
             if name not in layer_inputs:
                 layer_inputs[name] = []
-            layer_inputs[name].append(inp)
+            layer_inputs[name].append(inp_cpu)
         return hook
 
     def get_submodule(root, name):
@@ -111,7 +112,7 @@ def main():
 
                 def make_stream_adapter():
                     for x_chunk in X_list:
-                        yield x_chunk.to(torch.float32)
+                        yield x_chunk.to(args.device, torch.float32)
                 out_weight = torch.zeros_like(W)
                 quantizer = Quantizer(per_channel=True, w_bits=args.w_bits)
                 if args.mode == "svd":
