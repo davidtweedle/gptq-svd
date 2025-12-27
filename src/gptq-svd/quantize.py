@@ -97,7 +97,7 @@ def main():
                         else:
                             batch_kwargs[k] = v
                 batch_kwargs["use_cache"] = False
-                out = layer(inp_batch, **batch_kwargs)
+                out = layer(inp_batch, **batch_kwargs)[0]
                 del inp_batch, batch_kwargs, out
                 cleanup()
             for h in handles:
