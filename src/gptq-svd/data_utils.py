@@ -12,7 +12,7 @@ def get_loaders(name, tokenizer, n_samples=128, seq_len=2048):
 
 def get_wikitext2(tokenizer, n_samples, seq_len):
     # add randomization to sequence selection
-    data = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
+    data = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
     text = "\n\n".join(data["text"])
     encodings = tokenizer(text, return_tensors="pt")
 
@@ -22,7 +22,7 @@ def get_wikitext2(tokenizer, n_samples, seq_len):
         end = start + seq_len
         if end > encodings.input_ids.shape[1]:
             break
-        input_ids_list.append(encodings.input_ids[:, start:end])
+        input_ids_list.append(encodings.input_ids[:, start:end].clone())
     return input_ids_list
 
 
