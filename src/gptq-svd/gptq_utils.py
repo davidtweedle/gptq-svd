@@ -3,6 +3,7 @@ import jax
 import itertools
 from jax.dlpack import from_dlpack
 import gc
+import math
 
 class Quantizer:
 
