@@ -38,7 +38,7 @@ def main():
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
     inps, outs, layer_kwargs = model_utils.capture_initial_inputs(
-            model, input_ids_list, device=args.device
+            model, input_ids_list, device="cpu"
             )
     layers = model_utils.get_layers(model)
 
@@ -77,7 +77,7 @@ def main():
                 submodule = get_submodule(layer, name)
                 handles.append(submodule.register_forward_hook(add_batch(name)))
             for j in range(args.n_samples):
-                inp_batch = inps[j].unsqueeze(0)
+                inp_batch = inps[j].unsqueeze(0).to(args.device)
                 batch_kwargs = {}
                 if layer_kwargs:
                     for k, v in layer_kwargs.items():
@@ -149,7 +149,7 @@ def main():
                     else:
                         batch_kwargs[k] = v
             batch_kwargs['use_cache'] = False
-            outs[j] = layer(inp_batch, **batch_kwargs)[0].squeeze(0)
+            outs[j] = layer(inp_batch, **batch_kwargs)[0].squeeze(0).to("cpu")
         inps, outs = outs, inps
         cleanup()
 
