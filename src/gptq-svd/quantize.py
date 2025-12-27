@@ -21,6 +21,10 @@ def cleanup():
     torch.cuda.synchronize()
 
 
+def log_mem(msg):
+    print(f"[{msg}] GPU Alloc: {torch.cuda.memory_allocated()/1e9:.2f} | Reserved: {torch.cuda.memory_reserved()/1e9:.2f} GB")
+
+
 def main():
     print(f"Starting quantization")
     args = utils.get_args()
@@ -29,17 +33,16 @@ def main():
     cleanup()
     print(f"Mode: {args.mode.upper()}")
 
+    log_mem("Pre-load")
     model, tokenizer = model_utils.get_model(args.model_id, args.device)
-    ppl = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
-    print(f"Baseline PPL: {ppl:.2f}")
-    if args.mode == "baseline":
-        return
+    log_mem("Post-load")
 
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
     inps, outs, layer_kwargs = model_utils.capture_initial_inputs(
             model, input_ids_list, device="cpu"
             )
+    log_mem("Post-capture")
     layers = model_utils.get_layers(model)
 
     layer_inputs = {}
@@ -152,14 +155,17 @@ def main():
             outs[j] = layer(inp_batch, **batch_kwargs)[0].squeeze(0).to("cpu")
         inps, outs = outs, inps
         cleanup()
+        log_mem(f"End Layer {i}")
 
     print(f"Quantization finished in {time.time() - start_time:.2f}s")
     print(f"Saving model to {args.save_path}...")
     model.save_pretrained(args.save_path)
     tokenizer.save_pretrained(args.save_path)
 
-    ppl = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
-    print(f"{args.mode.upper()} PPL: {ppl:.2f}")
+    ppl_q = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
+    ppl_baseline = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
+    print(f"Baseline PPL: {ppl_baseline:.2f}")
+    print(f"{args.mode.upper()} PPL: {ppl_q:.2f}")
 
 
 if __name__ == "__main__":
