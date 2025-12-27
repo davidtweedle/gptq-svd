@@ -37,6 +37,7 @@ def main():
     log_mem("Pre-load")
     model, tokenizer = model_utils.get_model(args.model_id, args.device)
     log_mem("Post-load")
+    print(model.config)
 
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
