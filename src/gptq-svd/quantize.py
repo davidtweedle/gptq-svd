@@ -80,6 +80,7 @@ def main():
                 submodule = get_submodule(layer, name)
                 handles.append(submodule.register_forward_hook(add_batch(name)))
             for j in range(args.n_samples):
+                log_mem(f"Sample {j}")
                 inp_batch = inps[j].unsqueeze(0).to(args.device)
                 batch_kwargs = {}
                 if layer_kwargs:
