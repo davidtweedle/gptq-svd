@@ -75,6 +75,14 @@ def capture_initial_inputs(model, input_ids_list, device="cuda"):
                 for k, v in kwargs.items():
                     if isinstance(v, torch.Tensor):
                         params[k] = v.to(device)
+                    elif isinstance(v, (tuple, list)):
+                        moved = []
+                        for x in v:
+                            if isinstance(x, torch.Tensor):
+                                moved.append(x.to(device))
+                            else:
+                                moved.append(x)
+                        params[k] = tuple(moved) if isinstance(v, tuple) else moved
                     else:
                         params[k] = v
                 cache['layer_kwargs'] = params
@@ -89,6 +97,7 @@ def capture_initial_inputs(model, input_ids_list, device="cuda"):
     layers[0] = Catcher(layers[0])
     model_device = next(model.parameters()).device
     for batch in input_ids_list:
+        print(f"Batch shape: {batch.shape}")
         batch = batch.to(model_device)
         try:
             model(batch)
