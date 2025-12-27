@@ -1,7 +1,7 @@
 import os
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
-os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
+# os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 
 import torch
 import time
@@ -97,9 +97,11 @@ def main():
                 batch_kwargs["use_cache"] = False
                 out = layer(inp_batch, **batch_kwargs)
                 del inp_batch, batch_kwargs, out
-                cleanup()
+                if j % 50 == 0:
+                    gc.collect()
             for h in handles:
                 h.remove()
+            cleanup()
             for name in group_names:
                 print(f"Quantizing {name}")
                 if name not in layer_inputs or len(layer_inputs[name]) == 0:
