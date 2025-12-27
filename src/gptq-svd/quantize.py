@@ -29,15 +29,11 @@ def main():
     print(f"Baseline PPL: {ppl:.2f}")
     if args.mode == "baseline":
         return
-#    if next(model.parameters()).device.type != 'cpu':
-#        print("Warning: Model on GPU. Moving to CPU to save VRAM.")
-#        model.to("cpu")
-    cleanup()
 
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
     inps, outs, layer_kwargs = model_utils.capture_initial_inputs(
-            model, input_ids_list, device="cpu"
+            model, input_ids_list, device=args.device
             )
     layers = model_utils.get_layers(model)
 
@@ -48,7 +44,6 @@ def main():
             inp = input[0].detach()
             if len(inp.shape) == 3:
                 inp = inp.squeeze(0)
-#            inp_cpu = inp.to("cpu", non_blocking=True).clone()
             if name not in layer_inputs:
                 layer_inputs[name] = []
             layer_inputs[name].append(inp)
@@ -76,7 +71,7 @@ def main():
                 submodule = get_submodule(layer, name)
                 handles.append(submodule.register_forward_hook(add_batch(name)))
             for j in range(args.n_samples):
-                inp_batch = inps[j].unsqueeze(0).to(args.device)
+                inp_batch = inps[j].unsqueeze(0)
                 batch_kwargs = {}
                 if layer_kwargs:
                     for k, v in layer_kwargs.items():
