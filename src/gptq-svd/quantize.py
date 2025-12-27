@@ -97,6 +97,8 @@ def main():
                 batch_kwargs["use_cache"] = False
                 layer(inp_batch, **batch_kwargs)
                 del inp_batch, batch_kwargs
+                if j % 10 == 0:
+                    torch.cuda.empty_cache()
             for h in handles:
                 h.remove()
             for name in group_names:
