@@ -96,6 +96,7 @@ def main():
                         else:
                             batch_kwargs[k] = v
                 batch_kwargs["use_cache"] = False
+                batch_kwargs["attention_mask"] = None
                 out = layer(inp_batch, **batch_kwargs)[0]
                 del inp_batch, batch_kwargs, out
                 cleanup()
@@ -158,6 +159,7 @@ def main():
                     else:
                         batch_kwargs[k] = v
             batch_kwargs['use_cache'] = False
+            batch_kwargs['attention_mask'] = None
             outs[j] = layer(inp_batch, **batch_kwargs)[0].squeeze(0).to("cpu")
             cleanup()
         inps, outs = outs, inps
