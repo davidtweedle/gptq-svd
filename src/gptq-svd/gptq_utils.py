@@ -5,6 +5,7 @@ from jax.dlpack import from_dlpack
 import gc
 import math
 
+
 class Quantizer:
 
     def __init__(self, per_channel=True, w_bits=4):
@@ -199,6 +200,11 @@ def gptq_svd_fwrd(
         mask[cur_cols] = False
         SVh_mask = SVh[:, mask]
         Up, Sp, Vph = torch.linalg.svd(SVh_mask, full_matrices=False)
+        threshold = Sp[0] * eps
+        valid_rank = torch.count_nonzero(Sp > threshold)
+        Up = Up[:, :valid_rank]
+        Sp = Sp[:valid_rank]
+        Vph = Vph[:valid_rank]
         w_block = W[:, cur_cols]
         q_block = quantizer.quantize(w_block)
         out_weight[:, cur_cols] = q_block
@@ -209,7 +215,7 @@ def gptq_svd_fwrd(
         c_scaled = c / Sp.unsqueeze(1)
         K = Vph.T @ c_scaled
         delta = err_block @ K.T
-        W[:, mask] += delta.to(dtype)
+        W[:, mask] -= delta.to(dtype)
         del Up, Sp, Vph, c, c_scaled, K, delta
 
     out_weight[:, mask] = quantizer.quantize(W[:, mask])
