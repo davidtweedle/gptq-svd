@@ -138,10 +138,6 @@ def main():
             layer_ranks = []
             for name in group_names:
                 print(f"Quantizing {name}")
-                if name not in layer_inputs or len(layer_inputs[name]) == 0:
-                    print(f"Warning: No inputs captured for {name}, skipping quantization")
-                    # should round to nearest
-                    continue
                 submodule = get_submodule(layer, name)
                 W = submodule.weight.data.float()
                 m, n = W.shape
