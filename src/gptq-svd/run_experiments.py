@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 PYTHON_INTERPRETER = "python"
 SCRIPT_PATH = "quantize.py"
-MODEL_ID = "Qwen/Qwen3-0.6B"
+MODEL_ID = "Qwen/Qwen3-8B"
 DATASET = "wikitext2"
 BASE_SAVE_DIR = "experiments_dec29"
 param_grid = {
