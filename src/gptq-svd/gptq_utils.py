@@ -184,6 +184,7 @@ def gptq_svd_qr_fwrd(
         H_perm = H_sqrt[:, perm]
         _, R = torch.linalg.qr(H_perm)
     W = weight_mat[:, perm]
+    quantizer.init_scale(W)
     Q_W = torch.zeros_like(W)
     for i in range(current_rank):
         w_col = W[:, i]
