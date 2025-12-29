@@ -155,6 +155,60 @@ def gptq_svd_fwrd_test(
     out_weight[:, mask] = quantizer.quantize(W[:, mask])
 
 
+def gptq_svd_qr_fwrd(
+        weight_mat,
+        input_sketch,
+        quantizer,
+        threshold=1e-2,
+        permute_order=None
+        ):
+    out_features, in_features = weight_mat.shape
+    device = weight_mat.device
+    dtype = weight_mat.dtype
+    _, S, Vh = torch.linalg.svd(input_sketch, full_matrices=False)
+    keep_mask = S > threshold
+    # alternatively want to test S > threshold * S[0]
+    S = S[keep_mask]
+    Vh = Vh[keep_mask, :]
+    current_rank = int(S.shape[0])
+    H_sqrt = S.unsqueeze(1) * Vh
+    if permute_order is None:
+        H_sqrt_jax = from_dlpack(H_sqrt)
+        _, R_jax, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
+        perm = torch.from_dlpack(perm_jax)
+        R = torch.from_dlpack(R_jax)
+        del H_sqrt_jax, perm_jax, R_jax, H_sqrt
+        jax.clear_caches()
+    else:
+        perm = permute_order
+        H_perm = H_sqrt[:, perm]
+        _, R = torch.linalg.qr(H_perm)
+    W = weight_mat[:, perm]
+    Q_W = torch.zeros_like(W)
+    for i in range(current_rank):
+        w_col = W[:, i]
+        q_col = quantizer.quantize(w_col)
+        Q_W[:, i] = q_col
+        error = w_col - q_col
+        diag = R[i, i]
+        if abs(diag) < 1e-6:
+            continue
+        if i + 1 < in_features:
+            R_row = R[i, i + 1:]
+            scaling = R_row / diag
+            delta = torch.outer(error, scaling)
+            W[:, i+1:] -= delta
+    if current_rank < in_features:
+        w_rem = W[:, current_rank:]
+        Q_W[:, current_rank:] = quantizer.quantize(w_rem)
+
+    inv_perm = torch.argsort(perm)
+    final_W = Q_W[:, inv_perm]
+
+    return final_W, current_rank
+
+
+
 def gptq_svd_fwrd(
         sketch_dim,
         oversample,

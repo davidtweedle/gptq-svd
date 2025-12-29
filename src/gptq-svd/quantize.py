@@ -6,12 +6,13 @@ os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 import torch
 import time
 import gc
+import json
 import jax
 import utils
 import data_utils
 import model_utils
 import eval_utils
-from gptq_utils import gptq_svd_fwrd, Quantizer, gptq_ref_fwrd
+from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd
 
 
 def cleanup():
@@ -31,16 +32,24 @@ def main():
     torch.manual_seed(args.seed)
     torch.set_grad_enabled(False)
     cleanup()
+    experiment_log = {
+            "config": vars(args),
+            "layer_stats": [],
+            "metrics": {}
+            }
+    print(f"Starting experiment: eps={args.eps}, sketch={args.sketch_ratio}")
     print(f"Mode: {args.mode.upper()}")
 
     model, tokenizer = model_utils.get_model(args.model_id, args.device)
     model.config.use_cache = False
     if not hasattr(model, "seqlen"):
-        model.seqlen = 2048
-    
+        model.seqlen = args.seq_len
     ppl_baseline = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
     print(f"Baseline PPL: {ppl_baseline:.2f}")
+    experiment_log["metrics"]["baseline_ppl"] = ppl_baseline
     if args.mode == "baseline":
+        with open(f"{args.save_path}/log.json", "w") as f:
+            json.dump(experiment_log, f, indent=4)
         return
 
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
@@ -70,10 +79,11 @@ def main():
             curr = getattr(curr, p)
         return curr
     print(f"\n--- Starting {args.mode.upper()} Quantization ---")
-    start_time = time.time()
+    start_global = time.time()
 
     for i, layer in enumerate(layers):
         print(f"Processing Layer {i}/{len(layers)}...")
+        layer_start_time = time.time()
         layer = layer.to(args.device)
 
         groups = model_utils.get_sequenced_groups(layer)
@@ -105,6 +115,7 @@ def main():
             for h in handles:
                 h.remove()
             cleanup()
+            layer_ranks = []
             for name in group_names:
                 print(f"Quantizing {name}")
                 if name not in layer_inputs or len(layer_inputs[name]) == 0:
@@ -119,22 +130,33 @@ def main():
                 def make_stream_adapter():
                     for x_chunk in X_list:
                         yield x_chunk.to(args.device, torch.float32)
-                out_weight = torch.zeros_like(W)
                 quantizer = Quantizer(per_channel=True, w_bits=args.w_bits)
+                module_stat = {"name": f"layer_{i}.{name}", "n_cols": n}
                 if args.mode == "svd":
+                    sketch_start = time.time()
                     sketch_dim = int(n * args.sketch_ratio)
-                    gptq_svd_fwrd(
-                            sketch_dim=sketch_dim,
-                            oversample=16,
-                            k_iter=args.k_iter,
-                            make_stream=make_stream_adapter,
+                    Y_sketch = torch.zeros((sketch_dim, n), device=args.device, dtype=torch.float32)
+                    for x_chunk in make_stream_adapter():
+                        current_batch = x_chunk.shape[0]
+                        omega = torch.randn((sketch_dim, current_batch), device=args.device, dtype=torch.float32) / (sketch_dim ** 0.5)
+                        Y_sketch += omega @ x_chunk
+                        del omega, x_chunk
+                    module_stat["sketch_time"] = time.time() - sketch_start
+                    solve_start = time.time()
+                    final_W, used_rank = gptq_svd_qr_fwrd(
                             weight_mat=W,
-                            out_weight=out_weight,
+                            input_sketch=Y_sketch,
                             quantizer=quantizer,
-                            eps=args.eps,
-                            update_block_size=512
+                            threshold=args.eps,
+                            permute_order=None
                             )
+                    module_stat["solve_time"] = time.time() - solve_start
+                    module_stat["rank_kept"] = used_rank
+                    module_stat["rank_fraction"] = float(used_rank) / n
+                    submodule.weight.copy_(final_W)
+                    del Y_sketch, final_W
                 elif args.mode == "gptq":
+                    out_weight = torch.zeros_like(W)
                     gptq_ref_fwrd(
                             make_stream=make_stream_adapter,
                             weight_mat=W,
@@ -142,9 +164,11 @@ def main():
                             quantizer=quantizer,
                             blocksize=128
                             )
-                submodule.weight.copy_(out_weight)
-                del out_weight, W, quantizer
+                    submodule.weight.copy_(out_weight)
+                    del out_weight
+                del W, quantizer
                 del X_list, layer_inputs[name]
+                experiment_log["layer_stats"].append(module_stat)
                 cleanup()
             layer_inputs.clear()
             cleanup()
@@ -166,14 +190,22 @@ def main():
             cleanup()
         inps, outs = outs, inps
         cleanup()
+        print(f"Layer {i} Done. Time: {time.time() - layer_start_time:.2f}s")
+    total_duration = time.time() - start_global
+    experiment_log["metrics"]["total_time"] = total_duration
 
-    print(f"Quantization finished in {time.time() - start_time:.2f}s")
+    print(f"Quantization finished in {total_duration:.2f}s")
     print(f"Saving model to {args.save_path}...")
     model.save_pretrained(args.save_path)
     tokenizer.save_pretrained(args.save_path)
 
     ppl_q = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
     print(f"{args.mode.upper()} PPL: {ppl_q:.2f}")
+    experiment_log["metrics"]["quantized_ppl"] = ppl_q
+    log_file = os.path.join(args.save_path, "results.json")
+    with open(log_file, "w") as f:
+        json.dump(experiment_log, f, indent=4)
+    print(f"Results saved to {log_file}")
 
 
 if __name__ == "__main__":
