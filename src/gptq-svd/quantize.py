@@ -191,13 +191,27 @@ def main():
         inps, outs = outs, inps
         cleanup()
         print(f"Layer {i} Done. Time: {time.time() - layer_start_time:.2f}s")
+    del inps, outs, layer_inputs
+    if 'layer_kwargs' in locals():
+        del layer_kwargs
+    cleanup()
     total_duration = time.time() - start_global
     experiment_log["metrics"]["total_time"] = total_duration
 
     print(f"Quantization finished in {total_duration:.2f}s")
     print(f"Saving model to {args.save_path}...")
-    model.save_pretrained(args.save_path)
-    tokenizer.save_pretrained(args.save_path)
+    try:
+        model.cpu()
+        model.save_pretrained(args.save_path, safe_serialization=False)
+        tokenizer.save_pretrained(args.save_path)
+        print("Save successful.")
+    except Exception as e:
+        print(f"Standard save failed: {e}")
+        print(f"Fallback: Dumping state_dict...")
+        torch.save.model.state_dict(), os.path.join(args.save_path, "pytorch_model.bin"))
+        model.config.save_pretrained(args.save_path)
+
+    model.to(args.device)
 
     ppl_q = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
     print(f"{args.mode.upper()} PPL: {ppl_q:.2f}")

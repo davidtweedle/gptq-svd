@@ -15,7 +15,7 @@ param_grid = {
         }
 
 def run_command(cmd):
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
     while True:
         output = process.stdout.readline()
         if output == '' and process.poll() is not None:
@@ -23,6 +23,8 @@ def run_command(cmd):
         if output:
             print(output.strip())
     rc = process.poll()
+    if rc != 0:
+        raise RuntimeError(f"Command failed with return code {rc}")
     return rc
 
 
