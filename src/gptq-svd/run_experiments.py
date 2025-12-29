@@ -6,13 +6,14 @@ import pandas as pd
 from datetime import datetime
 PYTHON_INTERPRETER = "python"
 SCRIPT_PATH = "quantize.py"
-MODEL_ID = "Qwen/Qwen3-8B"
+MODEL_ID = "Qwen/Qwen3-0.6B"
 DATASET = "wikitext2"
-BASE_SAVE_DIR = "experiments_dec28"
+BASE_SAVE_DIR = "experiments_dec29"
 param_grid = {
         "eps": [1e-2, 1e-4, 1e-6],
-        "sketch_ratio": [0.03125, 0.5, 1.0, 8.0]
+        "sketch_ratio": [0.5, 1.0, 8.0]
         }
+
 
 def run_command(cmd):
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
