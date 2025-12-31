@@ -34,11 +34,11 @@ def gptq_block_kernel(
     scale_ptrs = Scales_ptr + offsets_rows * stride_s
     scales = tl.load(scale_ptrs, mask=mask_rows, other=1.0)
     offsets_cols = tl.arange(0, BLOCK_SIZE)
-    w_ptrs_base = W_ptr + (offsets_rows[:, None] * stride_w_row)
-    w_ptrs = w_ptrs_base + (offsets_cols[None, :] * stride_w_col)
+    w_ptrs = W_ptr + (offsets_rows[:, None] * stride_w_row) + (offsets_cols[None, :] * stride_w_col)
     w_data = tl.load(w_ptrs, mask=mask_rows[:, None], other=0.0)
     for k in range(BLOCK_SIZE):
-        w_col = tl.view(w_data, (BLOCK_ROWS, BLOCK_SIZE))[:, k]
+        mask_k = (offsets_cols == k)[None, :]
+        w_col = tl.sum(w_data * mask_k, axis=1)
         w_scaled = w_col / scales
         w_clamped = tl.clamp(w_scaled, float(MIN_VAL), float(MAX_VAL))
         q_int = tl.math.round(w_clamped)
@@ -50,10 +50,12 @@ def gptq_block_kernel(
         q_out_ptrs = Q_ptr + (offsets_rows * stride_q_row) + (k * stride_q_col)
         tl.store(q_out_ptrs, q_val, mask=mask_rows)
 
-        r_ptr_k = R_ptr + (k * stride_r_row) + (offsets_cols * stride_r_col)
-        r_row = tl.load(r_ptr_k)
-        diag = tl.view(r_row, (BLOCK_SIZE,))[k]
+        r_ptrs = R_ptr + (k * stride_r_row) + (offsets_cols * stride_r_col)
+        r_row = tl.load(r_ptrs)
+        diag_mask = (offsets_cols == k)
+        diag = tl.sum(r_row * diag_mask, axis=0)
         inv_diag = 1.0 / diag
+        # should be 1.0 / (diag + 1e-10) ??
         correction_vec = r_row * inv_diag
 
         err_broad = error[:, None]
