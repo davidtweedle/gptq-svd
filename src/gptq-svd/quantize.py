@@ -70,18 +70,22 @@ def main():
             curr = getattr(curr, p)
         return curr
 
-    def capture_hook(name):
+    def capture_hook(name, submodule):
+        out_features, in_features = submodule.weight.shape
         def hook(module, input, output):
             x = input[0].detach()
             if x.dim() == 3:
                 x = x.reshape(-1, x.shape[-1])
-            hidden_dim = x.shape[-1]
 
             if args.mode == "svd":
                 if name not in sketch_cache:
-                    rank = int(hidden_dim * args.sketch_ratio)
+                    raw_rank = int(in_features * args.sketch_ratio)
+                    rank = min(
+                            raw_rank,
+                            out_features
+                            )
                     sketch_cache[name] = torch.zeros(
-                            (rank, hidden_dim),
+                            (rank, in_features),
                             device=args.device,
                             dtype=torch.float32
                             )
@@ -114,7 +118,7 @@ def main():
             handles = []
             for name in group_names:
                 submodule = get_submodule(layer, name)
-                handles.append(submodule.register_forward_hook(capture_hook(name)))
+                handles.append(submodule.register_forward_hook(capture_hook(name, submodule)))
             for j in range(args.n_samples):
                 inp_batch = inps[j].unsqueeze(0).to(args.device)
                 batch_kwargs = {}

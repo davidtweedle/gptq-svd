@@ -155,7 +155,7 @@ def gptq_svd_fwrd_test(
     out_weight[:, mask] = quantizer.quantize(W[:, mask])
 
 
-@torch.compile(dynamic=True)
+#@torch.compile(dynamic=True)
 def process_block_jit(w_block, R_block_diag, scale, min_val, max_val):
     count = w_block.shape[1]
     error_block = torch.zeros_like(w_block)
@@ -186,7 +186,7 @@ def gptq_svd_qr_fwrd(
     device = weight_mat.device
     dtype = weight_mat.dtype
     _, S, Vh = torch.linalg.svd(input_sketch, full_matrices=False)
-    keep_mask = S > threshold
+    keep_mask = S > threshold * S[0]
     # alternatively want to test S > threshold * S[0]
     S = S[keep_mask]
     Vh = Vh[keep_mask, :]
