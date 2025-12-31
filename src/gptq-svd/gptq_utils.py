@@ -5,6 +5,84 @@ from jax.dlpack import from_dlpack
 import gc
 import math
 
+import triton
+from triton import language as tl
+
+@triton.jit
+def gptq_block_kernel(
+        W_ptr,
+        Q_ptr,
+        E_ptr,
+        R_ptr,
+        Scales_ptr,
+        Zeros_ptr,
+        stride_w_row, stride_w_col,
+        stride_q_row, stride_q_col,
+        stride_e_row, stride_e_col,
+        stride_r_row, stride_r_col,
+        stride_s,
+        n_rows,
+        BLOCK_SIZE: tl.constexpr,
+        MIN_VAL: tl.constexpr,
+        MAX_VAL: tl.constexpr
+        ):
+    pid = tl.program_id(0)
+    BLOCK_ROWS = 64
+    row_start = pid * BLOCK_ROWS
+    offsets_rows = row_start + tl.arange(0, BLOCK_ROWS)
+    mask_rows = offsets_rows < n_rows
+    scale_ptrs = Scales_ptr + offsets_rows * stride_s
+    scales = tl.load(scale_ptrs, mask=mask_rows, other=1.0)
+    offsets_cols = tl.arange(0, BLOCK_SIZE)
+    w_ptrs_base = W_ptr + (offsets_rows[:, None] * stride_w_row)
+    w_ptrs = w_ptrs_base + (offsets_cols[None, :] * stride_w_col)
+    w_data = tl.load(w_ptrs, mask=mask_rows[:, None], other=0.0)
+    for k in range(BLOCK_SIZE):
+        w_col = tl.view(w_data, (BLOCK_ROWS, BLOCK_SIZE))[:, k]
+        w_scaled = w_col / scales
+        w_clamped = tl.clamp(w_scaled, float(MIN_VAL), float(MAX_VAL))
+        q_int = tl.math.round(w_clamped)
+        q_val = q_int * scales
+        error = w_col - q_val
+        e_out_ptrs = E_ptr + (offsets_rows * stride_e_row) + (k * stride_e_col)
+        tl.store(e_out_ptrs, error, mask=mask_rows)
+
+        q_out_ptrs = Q_ptr + (offsets_rows * stride_q_row) + (k * stride_q_col)
+        tl.store(q_out_ptrs, q_val, mask=mask_rows)
+
+        r_ptr_k = R_ptr + (k * stride_r_row) + (offsets_cols * stride_r_col)
+        r_row = tl.load(r_ptr_k)
+        diag = tl.view(r_row, (BLOCK_SIZE,))[k]
+        inv_diag = 1.0 / diag
+        correction_vec = r_row * inv_diag
+
+        err_broad = error[:, None]
+        corr_broad = correction_vec[None, :]
+        delta = err_broad * corr_broad
+        update_mask = offsets_cols > k
+        w_data = tl.where(update_mask[None, :], w_data - delta, w_data)
+
+def triton_process_block(w_block, R_block, quantizer):
+    out_features, block_size = w_block.shape
+    q_block = torch.empty_like(w_block)
+    e_block = torch.empty_like(w_block)
+    grid = lambda meta: (triton.cdiv(out_features, 64),)
+    gptq_block_kernel[grid](
+            w_block, q_block, e_block, R_block,
+            quantizer.scale.squeeze(),
+            None,
+            w_block.stride(0), w_block.stride(1),
+            q_block.stride(0), q_block.stride(1),
+            e_block.stride(0), e_block.stride(1),
+            R_block.stride(0), R_block.stride(1),
+            quantizer.scale.stride(0),
+            out_features,
+            BLOCK_SIZE=block_size,
+            MIN_VAL=quantizer.min_val,
+            MAX_VAL=quantizer.max_val
+            )
+    return q_block, e_block
+
 
 class Quantizer:
 
@@ -207,20 +285,13 @@ def gptq_svd_qr_fwrd(
     Q_W = torch.zeros_like(W)
     for i in range(0, current_rank, block_size):
         j = min(i + block_size, current_rank)
-        count = j - i
         w_block = W[:, i:j]
         R_block_diag = R[i:j, i:j]
-        scale_tensor = quantizer.scale.squeeze()
-        min_v = quantizer.min_val
-        max_v = quantizer.max_val
-        w_block_quantized, E_block = process_block_jit(
+        w_block_quantized, E_block = triton_process_block(
                 w_block,
                 R_block_diag,
-                scale_tensor,
-                min_v,
-                max_v
+                quantizer
                 )
-
         Q_W[:, i:j] = w_block_quantized
         if j < in_features:
             R_cross = R[i:j, j:]
