@@ -23,11 +23,11 @@ def gptq_block_kernel(
         stride_s,
         n_rows,
         BLOCK_SIZE: tl.constexpr,
+        BLOCK_ROWS: tl.constexpr,
         MIN_VAL: tl.constexpr,
         MAX_VAL: tl.constexpr
         ):
     pid = tl.program_id(0)
-    BLOCK_ROWS = 64
     row_start = pid * BLOCK_ROWS
     offsets_rows = row_start + tl.arange(0, BLOCK_ROWS)
     mask_rows = offsets_rows < n_rows
@@ -66,6 +66,7 @@ def triton_process_block(w_block, R_block, quantizer):
     out_features, block_size = w_block.shape
     q_block = torch.empty_like(w_block)
     e_block = torch.empty_like(w_block)
+    BLOCK_ROWS = 64
     grid = lambda meta: (triton.cdiv(out_features, 64),)
     gptq_block_kernel[grid](
             w_block, q_block, e_block, R_block,
@@ -78,6 +79,7 @@ def triton_process_block(w_block, R_block, quantizer):
             quantizer.scale.stride(0),
             out_features,
             BLOCK_SIZE=block_size,
+            BLOCK_ROWS=BLOCK_ROWS,
             MIN_VAL=quantizer.min_val,
             MAX_VAL=quantizer.max_val
             )
