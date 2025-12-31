@@ -317,6 +317,13 @@ def gptq_svd_qr_fwrd(
                 R_block_diag,
                 quantizer
                 )
+        if torch.isnan(w_block_quantized).any() or w_block_quantized.abs().max() > 1000:
+            print(f"!! Explosion detected in block {i}")
+            print(f"Max weight: {w_block.abs().max().item():.4f}")
+            print(f"Max quant: {w_block_quantized.abs().max().item():.4f}")
+            print(f"Max error: {E_block.abs().max().item():.4f}")
+            print(f"Min diag R: {torch.diagonal(R_block_diag).abs().min().item():.4e}")
+            import sys; sys.exit()
         Q_W[:, i:j] = w_block_quantized
         if j < in_features:
             R_cross = R[i:j, j:]
