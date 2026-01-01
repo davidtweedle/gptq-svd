@@ -157,7 +157,7 @@ def main():
                     #    print(f"Warning: No sketch for {name}")
                     #    continue
                     #Y_sketch = sketch_cache[name]
-                    #solve_start = time.time()
+                    solve_start = time.time()
                     Y_sketch = sketch_cache[name].get_scaled_sketch()
                     final_W, used_rank = gptq_svd_qr_fwrd(
                             weight_mat=W,
