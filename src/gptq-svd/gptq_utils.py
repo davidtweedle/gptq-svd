@@ -336,6 +336,13 @@ def gptq_svd_qr_fwrd(
         perm = permute_order
         H_perm = H_sqrt[:, perm]
         _, R = torch.linalg.qr(H_perm)
+    S_inv = 1.0 / S
+    H_sqrt_inv = S_inv.unsqueeze(1) * Vh
+    H_sqrt_inv_perm = H_sqrt_inv[:, perm]
+    _, R_prime = torch.linalg.qr(H_sqrt_inv_perm, mode='reduced')
+    diag_sign = torch.sign(torch.diagonal(R_prime))
+    R_prime = R_prime * diag_sign.unsqueeze(1)
+    R = R_prime
     W = weight_mat[:, perm]
     quantizer.init_scale(W)
     Q_W = torch.zeros_like(W)
@@ -355,10 +362,6 @@ def gptq_svd_qr_fwrd(
             Scale_Mat = R_cross / R_diags.unsqueeze(1)
             Global_Delta = E_block @ Scale_Mat
             W[:, j:] -= Global_Delta
-#            if W[:, j:].abs().max() > 100.0:
-#                print(f" Explosion in future weights (Block {i}) ")
-#                print(f"Max future W: {W[:, j:].abs().max().item()}")
-#                return Q_W, current_rank
 
     if current_rank < in_features:
         w_rem = W[:, current_rank:]
