@@ -12,7 +12,7 @@ import utils
 import data_utils
 import model_utils
 import eval_utils
-from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd
+from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd, Sketcher
 
 
 def cleanup():
@@ -71,31 +71,31 @@ def main():
         return curr
 
     def capture_hook(name, submodule):
-        out_features, in_features = submodule.weight.shape
+#        out_features, in_features = submodule.weight.shape
         def hook(module, input, output):
             x = input[0].detach()
             if x.dim() == 3:
                 x = x.reshape(-1, x.shape[-1])
 
-            if args.mode == "svd":
-                if name not in sketch_cache:
-                    raw_rank = int(in_features * args.sketch_ratio)
-                    rank = min(
-                            raw_rank,
-                            out_features
-                            )
-                    sketch_cache[name] = torch.zeros(
-                            (rank, in_features),
-                            device=args.device,
-                            dtype=torch.float32
-                            )
-                Y = sketch_cache[name]
-                rank = Y.shape[0]
-                current_batch = x.shape[0]
-                scale = 1.0 / (rank ** 0.5)
-                omega = torch.randn((rank, current_batch), device=args.device, dtype=torch.float32) * scale
-                torch.addmm(input=Y, mat1=omega, mat2=x.to(args.device, torch.float32), beta=1.0, alpha=1.0, out=Y)
-            elif args.mode == "gptq":
+#            if args.mode == "svd":
+#                if name not in sketch_cache:
+#                    raw_rank = int(in_features * args.sketch_ratio)
+#                    rank = min(
+#                            raw_rank,
+#                            out_features
+#                            )
+#                    sketch_cache[name] = torch.zeros(
+#                            (rank, in_features),
+#                            device=args.device,
+#                            dtype=torch.float32
+#                            )
+#                Y = sketch_cache[name]
+#                rank = Y.shape[0]
+#                current_batch = x.shape[0]
+#                scale = 1.0 / (rank ** 0.5)
+#                omega = torch.randn((rank, current_batch), device=args.device, dtype=torch.float32) * scale
+#                torch.addmm(input=Y, mat1=omega, mat2=x.to(args.device, torch.float32), beta=1.0, alpha=1.0, out=Y)
+            if args.mode == "gptq":
                 x_cpu = x.cpu()
                 if name not in layer_inputs:
                     layer_inputs[name] = []
@@ -118,7 +118,10 @@ def main():
             handles = []
             for name in group_names:
                 submodule = get_submodule(layer, name)
-                handles.append(submodule.register_forward_hook(capture_hook(name, submodule)))
+                out_features, in_features = submodule.weight.shape
+                rank = min(in_features * args.sketch_ratio, out_features)
+                sketch_cache[name] = Sketcher(submodule, rank)
+                handles.append(submodule.register_forward_hook(sketch_cache[name].hook_fn))
             for j in range(args.n_samples):
                 inp_batch = inps[j].unsqueeze(0).to(args.device)
                 batch_kwargs = {}
@@ -143,17 +146,19 @@ def main():
             for name in group_names:
                 print(f"Quantizing {name}")
                 submodule = get_submodule(layer, name)
+                sketcher = sketch_cache[name]
                 W = submodule.weight.data.float()
                 m, n = W.shape
 
                 quantizer = Quantizer(per_channel=True, w_bits=args.w_bits)
                 module_stat = {"name": f"layer_{i}.{name}", "n_cols": n}
                 if args.mode == "svd":
-                    if name not in sketch_cache:
-                        print(f"Warning: No sketch for {name}")
-                        continue
-                    Y_sketch = sketch_cache[name]
-                    solve_start = time.time()
+                    #if name not in sketch_cache:
+                    #    print(f"Warning: No sketch for {name}")
+                    #    continue
+                    #Y_sketch = sketch_cache[name]
+                    #solve_start = time.time()
+                    Y_sketch = sketch_cache[name].get_scaled_sketch()
                     final_W, used_rank = gptq_svd_qr_fwrd(
                             weight_mat=W,
                             input_sketch=Y_sketch,

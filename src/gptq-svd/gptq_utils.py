@@ -108,6 +108,35 @@ def triton_process_block(w_block, R_block, quantizer):
         e_final = e_output
     return q_final, e_final
 
+class Sketcher:
+    def __init__(self, layer, rank, device='cuda'):
+        self.layer = layer
+        self.rank = rank
+        self.device = device
+        self.in_features = layer.in_features
+        self.Y = torch.zeros((rank, self.in_features), device=device, dtype=torch.float32)
+        self.n_samples = 0
+
+    def hook_fn(self, module, input_args, output):
+        x = input_args[0]
+        if x.dim() > 2:
+            x = x.view(-1, x.shape[-1])
+        batch_count = x.shape[0]
+        if batch_count == 0:
+            return
+        self.n_samples += batch_count
+        x_float = x.to(dtype=torch.float32)
+        R_batch = torch.randn((self.rank, batch_count), device=self.device, dtype=torch.float32)
+        self.Y += R_batch @ x_float
+
+    def get_scaled_sketch(self):
+        if self.n_samples == 0:
+            return None, None, 0
+        scale_factor = 1.0 / math.sqrt(self.n_samples * self.rank)
+        Y_final = self.Y * scale_factor
+        return Y_final
+
+
 
 class Quantizer:
 
@@ -326,10 +355,10 @@ def gptq_svd_qr_fwrd(
             Scale_Mat = R_cross / R_diags.unsqueeze(1)
             Global_Delta = E_block @ Scale_Mat
             W[:, j:] -= Global_Delta
-            if W[:, j:].abs().max() > 100.0:
-                print(f" Explosion in future weights (Block {i}) ")
-                print(f"Max future W: {W[:, j:].abs().max().item()}")
-                return Q_W, current_rank
+#            if W[:, j:].abs().max() > 100.0:
+#                print(f" Explosion in future weights (Block {i}) ")
+#                print(f"Max future W: {W[:, j:].abs().max().item()}")
+#                return Q_W, current_rank
 
     if current_rank < in_features:
         w_rem = W[:, current_rank:]
