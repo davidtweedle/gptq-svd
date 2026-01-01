@@ -298,7 +298,9 @@ def gptq_svd_qr_fwrd(
     if permute_order is None:
         H_sqrt_jax = from_dlpack(H_sqrt)
         _, R_jax, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
-        perm = torch.from_dlpack(perm_jax)
+        perm = torch.from_dlpack(perm_jax).long()
+        if perm.min() < 0 or perm.max() >= in_features or len(torch.unique(perm)) != in_features:
+            raise ValueError(f"Critical: jax returned invalid permutation: {perm}")
         R = torch.from_dlpack(R_jax)
         del H_sqrt_jax, perm_jax, R_jax, H_sqrt
     else:
@@ -317,13 +319,6 @@ def gptq_svd_qr_fwrd(
                 R_block_diag,
                 quantizer
                 )
-        if torch.isnan(w_block_quantized).any() or w_block_quantized.abs().max() > 1000:
-            print(f"!! Explosion detected in block {i}")
-            print(f"Max weight: {w_block.abs().max().item():.4f}")
-            print(f"Max quant: {w_block_quantized.abs().max().item():.4f}")
-            print(f"Max error: {E_block.abs().max().item():.4f}")
-            print(f"Min diag R: {torch.diagonal(R_block_diag).abs().min().item():.4e}")
-            import sys; sys.exit()
         Q_W[:, i:j] = w_block_quantized
         if j < in_features:
             R_cross = R[i:j, j:]
@@ -331,6 +326,10 @@ def gptq_svd_qr_fwrd(
             Scale_Mat = R_cross / R_diags.unsqueeze(1)
             Global_Delta = E_block @ Scale_Mat
             W[:, j:] -= Global_Delta
+            if W[:, j:].abs().max() > 100.0:
+                print(f" Explosion in future weights (Block {i}) ")
+                print(f"Max future W: {W[:, j:].abs().max().item()}")
+                return Q_W, current_rank
 
     if current_rank < in_features:
         w_rem = W[:, current_rank:]
