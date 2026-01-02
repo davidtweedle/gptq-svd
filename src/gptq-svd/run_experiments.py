@@ -8,10 +8,10 @@ PYTHON_INTERPRETER = "python"
 SCRIPT_PATH = "quantize.py"
 MODEL_ID = "Qwen/Qwen3-8B"
 DATASET = "wikitext2"
-BASE_SAVE_DIR = "experiments_jan2"
+BASE_SAVE_DIR = "experiments_jan2_b"
 param_grid = {
-        "eps": [1e-3, 1e-4, 1e-5, 1e-6],
-        "sketch_ratio": [0.5, 1.0, 2.0]
+        "eps": [1e-2, 1e-3],
+        "sketch_ratio": [1.0, 2.0]
         }
 
 
