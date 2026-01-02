@@ -119,7 +119,7 @@ def main():
             for name in group_names:
                 submodule = get_submodule(layer, name)
                 out_features, in_features = submodule.weight.shape
-                rank = min(int(in_features * args.sketch_ratio), out_features)
+                rank = int(in_features * args.sketch_ratio)
                 sketch_cache[name] = Sketcher(submodule, rank)
                 handles.append(submodule.register_forward_hook(sketch_cache[name].hook_fn))
             for j in range(args.n_samples):

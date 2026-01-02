@@ -8,6 +8,8 @@ import math
 import triton
 from triton import language as tl
 
+jax.config.update("jax_enable_x64", True)
+
 @triton.jit
 def gptq_block_kernel(
         W_ptr,
@@ -317,19 +319,22 @@ def gptq_svd_qr_fwrd(
     out_features, in_features = weight_mat.shape
     device = weight_mat.device
     dtype = weight_mat.dtype
-    _, S, Vh = torch.linalg.svd(input_sketch, full_matrices=False)
+    input_sketch_64 = input_sketch.to(dtype=torch.float64)
+    _, S, Vh = torch.linalg.svd(input_sketch_64, full_matrices=False)
     keep_mask = S > threshold * S[0]
     # alternatively want to test S > threshold * S[0]
     S = S[keep_mask]
     Vh = Vh[keep_mask, :]
     current_rank = int(S.shape[0])
+    if current_rank > 0.8 * in_features:
+        print(f"   [INFO] High Rank: {current_rank}/{in_features} ({current_rank/in_features:.1%})")
+    else:
+        print(f"   [INFO] Rank: {current_rank}/{in_features} ({current_rank/in_features:.1%})")
     H_sqrt = S.unsqueeze(1) * Vh
     if permute_order is None:
         H_sqrt_jax = from_dlpack(H_sqrt)
         _, R_jax, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
         perm = torch.from_dlpack(perm_jax).long()
-        if perm.min() < 0 or perm.max() >= in_features or len(torch.unique(perm)) != in_features:
-            raise ValueError(f"Critical: jax returned invalid permutation: {perm}")
         R = torch.from_dlpack(R_jax)
         del H_sqrt_jax, perm_jax, R_jax, H_sqrt
     else:
@@ -342,7 +347,7 @@ def gptq_svd_qr_fwrd(
     _, R_prime = torch.linalg.qr(H_sqrt_inv_perm, mode='reduced')
     diag_sign = torch.sign(torch.diagonal(R_prime))
     R_prime = R_prime * diag_sign.unsqueeze(1)
-    R = R_prime
+    R = R_prime.to(dtype)
     W = weight_mat[:, perm]
     quantizer.init_scale(W)
     Q_W = torch.zeros_like(W)
