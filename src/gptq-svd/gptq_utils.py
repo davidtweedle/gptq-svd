@@ -323,7 +323,9 @@ def gptq_svd_qr_fwrd(
     del input_sketch
     torch.cuda.empty_cache()
     _, S, Vh = torch.linalg.svd(input_sketch_64, full_matrices=False)
-    keep_mask = S > threshold * S[0]
+    ref_k = min(128, len(S))
+    ref_val = torch.mean(S[:ref_k])
+    keep_mask = S > threshold * ref_val
     # alternatively want to test S > threshold * S[0]
     S = S[keep_mask]
     Vh = Vh[keep_mask, :]
