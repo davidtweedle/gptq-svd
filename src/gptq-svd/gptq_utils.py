@@ -357,13 +357,14 @@ def gptq_svd_qr_fwrd(
         print(f"   [INFO] Rank: {current_rank}/{in_features} ({current_rank/in_features:.1%})")
     H_sqrt = S.unsqueeze(1) * Vh
     if permute_order is None:
-        H_sqrt_jax = from_dlpack(H_sqrt)
+        H_sqrt_float = H_sqrt.to(torch.float32)
+        H_sqrt_jax = from_dlpack(H_sqrt_float)
         torch.cuda.synchronize()
         start_time = time.perf_counter()
         _, _, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
         perm = torch.from_dlpack(perm_jax).long()
         perm_jax.block_until_ready()
-        del H_sqrt_jax, perm_jax, H_sqrt
+        del H_sqrt_jax, perm_jax, H_sqrt, H_sqrt_float
     else:
         perm = permute_order
     S_inv = 1.0 / S
