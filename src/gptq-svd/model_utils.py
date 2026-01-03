@@ -9,7 +9,7 @@ def get_model(model_id, device="cuda"):
             model_id,
             dtype=torch.float16,
             device_map=device,
-            attn_implementation="sdpa",
+            attn_implementation="flash_attention_2",
             trust_remote_code=True,
             low_cpu_mem_usage=True
             )
