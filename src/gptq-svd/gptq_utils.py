@@ -1,5 +1,8 @@
-import torch
+import os
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 import jax
+import torch
 import itertools
 from jax.dlpack import from_dlpack
 import gc
@@ -9,6 +12,16 @@ import triton
 from triton import language as tl
 
 jax.config.update("jax_enable_x64", True)
+
+try:
+    print(f"[JAX Setup] Available devices: {jax.devices()}")
+    backend = jax.lib.xla_bridge.get_backend().platofmr
+    if backend == 'cpu':
+        raise RuntimeError("JAX is still using CPU!")
+    else:
+        print(f"[JAX Setup] Successfully running on: {backend.upper()}")
+except Exception as e:
+    print(f"[JAX Setup] ERROR: {e}")
 
 @triton.jit
 def gptq_block_kernel(
@@ -342,6 +355,8 @@ def gptq_svd_qr_fwrd(
         print(f"   [INFO] Rank: {current_rank}/{in_features} ({current_rank/in_features:.1%})")
     H_sqrt = S.unsqueeze(1) * Vh
     if permute_order is None:
+        if H_sqrt.device.type != 'cuda':
+            H_sqrt = H_sqrt.to("cuda")
         H_sqrt_jax = from_dlpack(H_sqrt)
         _, R_jax, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
         perm = torch.from_dlpack(perm_jax).long()
