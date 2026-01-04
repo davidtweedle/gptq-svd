@@ -343,7 +343,7 @@ def gptq_svd_qr_fwrd(
     ref_val = torch.mean(S[:ref_k])
     keep_mask = S > threshold * ref_val
     current_rank = int(keep_mask.sum().item())
-    hard_limit = int(0.75 * in_features)
+    hard_limit = int(0.9 * in_features)
     if current_rank > hard_limit:
         current_rank = hard_limit
         keep_mask[hard_limit:] = False
