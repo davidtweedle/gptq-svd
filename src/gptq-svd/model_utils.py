@@ -8,7 +8,8 @@ calibration inputs for quantization.
 import torch
 from torch import nn
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
-from typing import Tuple, List, Dict, Any, Union
+from typing import Tuple, List, Dict, Any
+
 
 def get_model(model_id: str, device: str = "cuda") -> Tuple[nn.Module, PreTrainedTokenizer]:
     """
@@ -20,12 +21,12 @@ def get_model(model_id: str, device: str = "cuda") -> Tuple[nn.Module, PreTraine
     # check for flash attention 2
     attn_implementation = "eager"
     try:
-        if torch.cuda.is_available()
-        major, _ = torch.cuda.get_device_capability()
-        if major >= 8:
-            import flash_attn
-            attn_implementation = "flash_attention_2"
-            print("[MODEL] Using Flash attention 2")
+        if torch.cuda.is_available():
+            major, _ = torch.cuda.get_device_capability()
+            if major >= 8:
+                import flash_attn
+                attn_implementation = "flash_attention_2"
+                print("[MODEL] Using Flash attention 2")
     except ImportError:
         pass
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -62,6 +63,7 @@ def get_layers(model: nn.Module) -> nn.ModuleList:
             return model.transformer.h
 
     raise ValueError("Could not find layers in model architecture")
+
 
 def get_sequenced_groups(layer: nn.Module) -> List[List[str]]:
     """
