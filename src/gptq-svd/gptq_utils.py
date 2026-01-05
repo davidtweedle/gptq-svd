@@ -258,6 +258,7 @@ def gptq_svd_qr_fwrd(
         input_sketch: torch.Tensor,
         quantizer: Quantizer,
         threshold: float = 1e-2,
+        threshold_method: str = "mean_trimmed",
         permute_order: Optional[torch.Tensor] = None,
         block_size: int = 256
         ) -> Tuple[torch.Tensor, int]:
@@ -281,6 +282,31 @@ def gptq_svd_qr_fwrd(
     torch.cuda.empty_cache()
 
     _, S, Vh = torch.linalg.svd(input_sketch_64, full_matrices=False)
+
+    if threshold_method == "energy":
+        energy = S ** 2
+        total_energy = torch.sum(energy)
+        target_energy = (1.0 - threshold) * total_energy
+        cumulative_energy = torch.cumsum(energy, dim=0)
+        keep_mask = cumulative_energy <= target_energy
+        current_rank = int(keep_mask.sum().item())
+        if current_rank < len(S):
+            current_rank += 1
+        keep_mask = torch.zeros_like(S, dtype=torch.bool)
+        keep_mask[:current_rank] = True
+    elif threshold_method == "mean_trimmed":
+        ref_k_start = 1
+        ref_k_end = 33
+        if len(S) < ref_k_end:
+            ref_val = torch.mean(S[1:]) if len(S) > 1 else S[0]
+        else:
+            ref_val = torch.mean(S[ref_k_start : ref_k_end])
+        abs_threshold = threshold * ref_val
+        keep_mask = S > abs_threshold
+        current_rank = int(keep_mask.sum().item())
+    else:
+        raise ValueError(f"Unknown threshold method: {threshold_method}")
+
 
     ref_k = min(32, len(S))
     ref_val = torch.mean(S[1:ref_k])
