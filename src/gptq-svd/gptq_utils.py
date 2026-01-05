@@ -26,6 +26,7 @@ from triton import language as tl
 jax.config.update("jax_enable_x64", True)
 # Use magma for dgeqp3 kernel (pivoted QR)
 jax.config.update("jax_use_magma", 'on')
+jax.config.update("jax_platforms", "cuda,cpu")
 
 
 # ==============================================================================
