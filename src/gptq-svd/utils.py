@@ -16,7 +16,7 @@ def setup_logging(save_path: str = None, log_level: str = "INFO"):
     handlers = [logging.StreamHandler(sys.stdout)]
 
     if save_path:
-        os.make_dirs(save_path, exist_ok=True)
+        os.makedirs(save_path, exist_ok=True)
         log_file = os.path.join(save_path, "quantization.log")
         handlers.append(logging.FileHandler(log_file))
 
