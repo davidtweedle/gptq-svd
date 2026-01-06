@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gptq-svd"
+version = "0.1.0"
+description = "GPT quantization using SVD"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "David Tweedle", email = "david.aig.tweedle@gmail.com" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Linux",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "numpy",
+    "scipy",
+    "transformers>=4.48.0",
+    "accelerate>=1.0.0",
+    "triton>=3.0.0",
+    "sentencepiece",
+    "protobuf",
+    "ninja",
+    "packaging",
+
+    "torch==2.6.0",
+    "torchvision==0.21.0",
+    "torchaudio==2.6.0",
+
+    "jax[cuda12]",
+
+    "flash_attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.6cxx1abiFALSE-cp311-cp311-linux_x86_64.whl",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "matplotlib",
+]
+
+[tool.ruff]
+line-length = 80
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
