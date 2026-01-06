@@ -90,6 +90,10 @@ def get_args():
             "--threshold_method", type=str, default="mean_trimmed", choices=["mean_trimmed", "energy"],
             help="Strategy for rank selection. 'mean_trimmed' uses mean(S[1:32]). 'energy' preserves (1-eps) variance."
             )
+    quant_group.add_argument(
+            "--actorder", action="store_true",
+            help="Enable actorder for reference GPTQ."
+            )
 
     # --- Output Configuration ---
     out_group = parser.add_argument_group("Output Configuration")
