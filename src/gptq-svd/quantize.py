@@ -142,6 +142,7 @@ def main():
                             input_sketch=Y_sketch,
                             quantizer=quantizer,
                             threshold=args.eps,
+                            threshold_method=args.threshold_method,
                             permute_order=None,
                             block_size=256
                             )
