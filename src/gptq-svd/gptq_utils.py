@@ -433,15 +433,25 @@ def gptq_ref_fwrd(
     percdamp = 0.01
     diag = H.diagonal()
     mean = torch.mean(diag)
-    diag.add_(percdamp * mean)
+    if mean == 0:
+        mean = 1.0
 
-    try:
-        H2 = torch.linalg.cholesky(H)
-        Hinv = torch.linalg.cholesky(torch.cholesky_inverse(H2), upper=True)
-        del H2
-    except RuntimeError:
-        print(f"[WARNING] Cholesky failed with damping.")
-        return
+    Hinv = None
+
+    for damping_factor in [percdamp, 0.1, 1.0]:
+        try:
+            H_damped = H.clone()
+            H_damped.diagonal().add_(damping_factor * mean)
+            H2 = torch.linalg.cholesky(H_damped)
+            Hinv = torch.linalg.cholesky(torch.cholesky_inverse(H2), upper=True)
+            if damping_factor > percdamp:
+                print(f"  [INFO] Cholesky succeeded with high damping: {damping_factor:.2f}")
+            break
+        except RuntimeError:
+            continue
+    if Hinv is None:
+        print(f"  [WARNING] Hessian is singular. Falling back to RTN")
+        Hinv = torch.eye(n, device=device, dtype=dtype)
 
     quantizer.init_scale(W)
     Q_final = torch.zeros_like(W)
@@ -473,9 +483,7 @@ def gptq_ref_fwrd(
             W[:, i2:] -= Err1.matmul(Hinv[i1:i2, i2:])
 
     inv_perm = torch.argsort(perm)
-    out_weight = Q_final[:, inv_perm]
+    out_weight[:] = Q_final[:, inv_perm]
 
-    avg_loss = torch.sum(Losses).item() / n_samples
-    print(f"Losses sum item: {torch.sum(Losses).item()}")
-    print(f"Average loss: {avg_loss}")
+    del H, W, Q_final, Losses
     torch.cuda.empty_cache()
