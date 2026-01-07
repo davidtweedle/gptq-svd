@@ -376,6 +376,8 @@ def gptq_svd_qr_fwrd(
     device = weight_mat.device
     dtype = weight_mat.dtype
 
+    R = R.to(dtype)
+
     current_rank = R.shape[0]
 
     # Block wise quantization
@@ -436,7 +438,8 @@ def gptq_ref_fwrd(
     device = weight_mat.device
     dtype = weight_mat.dtype
 
-    # Accumulate Hessian
+    H_inv_chol = H_inv_chol.to(dtype)
+
     W = weight_mat[:, perm]
 
     quantizer.init_scale(W)
