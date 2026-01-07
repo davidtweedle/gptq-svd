@@ -134,6 +134,7 @@ def main():
                 shared_stats = {"R": R, "perm": perm}
             elif args.mode == 'gptq':
                 H_matrix = accumulator.get_hessian()
+                del accumulator
                 R, perm = process_hessian(
                         H=H_matrix,
                         actorder=args.actorder
@@ -173,7 +174,7 @@ def main():
                 module_stat["solve_time"] = time.time() - solve_start
                 experiment_log["layer_stats"].append(module_stat)
                 cleanup()
-            del accumulator, shared_stats
+            del shared_stats
             cleanup()
         for j in range(args.n_samples):
             inp_batch = inps[j].unsqueeze(0).to(args.device)
