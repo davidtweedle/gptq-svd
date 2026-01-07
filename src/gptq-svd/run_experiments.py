@@ -103,17 +103,11 @@ def main():
                 metrics = data.get("metrics", {})
                 layer_stats = data.get("layer_stats", [])
 
-                if layer_stats:
-                    avg_rank = sum(x['rank_fraction'] for x in layer_stats) / len(layer_stats)
-                    avg_rank_pct = round(avg_rank * 100, 2)
-                else:
-                    avg_rank_pct = 0
                 summary.update({
                     'quantized_ppl': metrics.get("quantized_ppl"),
-                    'avg_rank_kept_pct': avg_rank_pct,
                     'total_time_s': round(metrics.get("total_time", 0), 2)
                     })
-                print(f"--> Result: PPL {summary['quantized_ppl']} | Rank {summary['avg_rank_kept_pct']}%")
+                print(f"--> Result: PPL {summary['quantized_ppl']}")
             except json.JSONDecodeError:
                 print("Error: Could not decode results.json")
 

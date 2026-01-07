@@ -117,7 +117,6 @@ def main():
             for h in handles:
                 h.remove()
             cleanup()
-            logging.info(f"Time for capturing inputs of {name}: {time.time() - capture_start}s")
             layer_ranks = []
             if args.mode == 'svd':
                 Y_sketch = accumulator.get_scaled_sketch()
@@ -134,6 +133,7 @@ def main():
                         actorder=args.actorder
                         )
                 shared_stats = {"R": R, "perm": perm}
+            logging.info(f"Time for processing inputs of {name}: {time.time() - capture_start}s")
             for name in group_names:
                 submodule = get_submodule(layer, name)
                 W = submodule.weight.data.float()
