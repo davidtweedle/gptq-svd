@@ -46,7 +46,6 @@ def process_sketch(
     sketch_double = sketch_cpu.to(device=device, dtype=torch.float64)
     del sketch_cpu
     factor, _ = torch.geqrf(sketch_double)
-    n_features = sketch.shape[1]
     R_reduced = torch.triu(factor[:n_features, :])
     del factor, sketch_double
     torch.cuda.empty_cache()
