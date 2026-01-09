@@ -217,6 +217,7 @@ class HessianAccumulator:
             x = x.reshape(-1, x.shape[-1])
         x = x.to(self.H.dtype)
         self.H += x.T @ x
+        self.H.addmm_(x.T, x)
         self.n_samples += x.shape[0]
 
     def get_hessian(self):
