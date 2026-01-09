@@ -92,7 +92,7 @@ def process_hessian_alt(
         ) -> Tuple[torch.Tensor, torch.Tensor]:
     H_double = H.to(dtype=torch.float64)
     L, V = torch.linalg.eigh(H_double)
-    S = torch.sqrt(L).flip(0)
+    S = torch.sqrt(L.clamp(min=1e-12)).flip(0)
     Vh = V.T.flip(0)
     del H_double, L, V
     if threshold_method == "energy":
