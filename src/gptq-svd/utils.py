@@ -83,7 +83,7 @@ def get_args():
             help="Ratio of sketch size to input dimension (d = ratio * n)"
             )
     quant_group.add_argument(
-            "--mode", type=str, choices=["svd", "gptq", "baseline"], default="svd",
+            "--mode", type=str, choices=["svd", "gptq", "eigh", "baseline"], default="svd",
             help="Quantization Strategy: 'svd' (Ours), 'gptq' (Reference), or 'baseline' (RTN)"
             )
     quant_group.add_argument(

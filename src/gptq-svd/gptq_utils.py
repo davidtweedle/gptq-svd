@@ -85,6 +85,45 @@ def process_sketch(
     return R, perm
 
 
+def process_hessian_alt(
+        H: torch.Tensor,
+        threshold: float = 0.0005,
+        threshold_method: str = "mean_trimmed"
+        ) -> Tuple[torch.Tensor, torch.Tensor]:
+    H_double = H.to(dtype=torch.float64)
+    L, V = torch.linalg.eigh(H_double)
+    S = torch.sqrt(L).flip(0)
+    Vh = V.T.flip(0)
+    del H_double, L, V
+    if threshold_method == "energy":
+        energy = S ** 2
+        target = (1.0 - threshold) * torch.sum(energy)
+        current_rank = int((torch.cumsum(energy, dim=0) <= target).sum())
+        if current_rank < len(S):
+            current_rank += 1
+    elif threshold_method == "mean_trimmed":
+        ref_k = min(33, len(S))
+        ref_val = torch.mean(S[1:ref_k]) if len(S) > 1 else S[0]
+        current_rank = int((S > threshold * ref_val).sum().item())
+    else:
+        current_rank = int(len(S))
+    S = S[:current_rank]
+    Vh = Vh[:current_rank, :]
+    S_inv = 1.0 / S
+    H_sqrt = S.unsqueeze(1) * Vh
+    H_sqrt_jax = from_dlpack(H_sqrt)
+    _, _, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
+    perm = torch.from_dlpack(perm_jax).long()
+    del H_sqrt_jax
+    H_inv_partial = S_inv.unsqueeze(1) * Vh
+    H_inv_permuted = H_inv_partial[:, perm]
+    _, R_prime = torch.linalg.qr(H_inv_permuted, mode='reduced')
+    diag_sign = torch.sign(torch.diagonal(R_prime))
+    R = (R_prime * diag_sign.unsqueeze(1))
+
+    return R, perm
+
+
 def process_hessian(
         H: torch.Tensor,
         actorder: bool = False,

@@ -11,7 +11,7 @@ from utils import get_args, setup_logging
 import data_utils
 import model_utils
 import eval_utils
-from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd, Sketcher, process_sketch, process_hessian
+from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd, Sketcher, process_sketch, process_hessian, process_hessian_alt
 
 
 def cleanup():
@@ -92,7 +92,7 @@ def main():
                 rank = int(in_features * args.sketch_ratio)
                 accumulator = Sketcher(submodule, rank, device=args.device)
                 handles.append(submodule.register_forward_hook(accumulator.hook_fn))
-            elif args.mode == "gptq":
+            elif args.mode == "gptq" or "eigh":
                 accumulator = HessianAccumulator(in_features, device=args.device)
                 def h_hook(module, inp, out):
                     accumulator.add_batch(inp[0].detach())
@@ -140,6 +140,15 @@ def main():
                         actorder=args.actorder
                         )
                 shared_stats = {"R": R, "perm": perm}
+            elif args.mode == 'eigh':
+                H_matrix = accumulator.get_hessian()
+                del accumulator
+                R, perm = process_hessian_alt(
+                        H=H_matrix,
+                        threshold=args.eps,
+                        threshold_method=args.threshold_method
+                        )
+                shared_stats = {"R": R, "perm": perm}
             logging.info(f"Time for processing inputs of {name}: {time.time() - capture_start}s")
             for name in group_names:
                 submodule = get_submodule(layer, name)
@@ -149,7 +158,7 @@ def main():
                 quantizer = Quantizer(per_channel=True, w_bits=args.w_bits)
                 module_stat = {"name": f"layer_{i}.{name}", "n_cols": n}
                 solve_start = time.time()
-                if args.mode == "svd":
+                if args.mode == "svd" or "eigh":
                     logging.info(f"Quantizing {name} (SVD)")
                     final_W, used_rank = gptq_svd_qr_fwrd(
                             weight_mat=W,
