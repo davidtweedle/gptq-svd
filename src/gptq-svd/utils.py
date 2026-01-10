@@ -98,6 +98,10 @@ def get_args():
             "--actorder", action="store_true",
             help="Enable actorder for reference GPTQ."
             )
+    quant_group.add_argument(
+            "--damp_percent", type=float, default=0.01,
+            help="Damping fraction for reference gptq (default: 0.01)"
+            )
 
     # --- Output Configuration ---
     out_group = parser.add_argument_group("Output Configuration")

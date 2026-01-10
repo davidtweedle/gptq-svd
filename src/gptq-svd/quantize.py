@@ -152,7 +152,8 @@ def main():
                 del accumulator
                 R, perm = process_hessian(
                         H=H_matrix,
-                        actorder=args.actorder
+                        actorder=args.actorder,
+                        damp_percent=args.damp_percent
                         )
                 shared_stats = {"R": R, "perm": perm}
             elif args.mode == 'eigh':

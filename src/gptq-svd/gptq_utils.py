@@ -143,14 +143,15 @@ def process_hessian(
         mean_diag = 1.0
 
     H_inv_factor = None
-    for damp in [damp_percent, 0.1, 1.0, 10.0]:
+    for damp_exp in range(5):
         try:
+            damp = 10 ** damp_exp * damp_percent
             H_damped = H_double.clone()
             H_damped.diagonal().add_(damp * mean_diag)
             L = torch.linalg.cholesky(H_damped)
             H_inv = torch.cholesky_inverse(L)
             H_inv_chol = torch.linalg.cholesky(H_inv, upper=True)
-            if damp > damp_percent:
+            if damp_exp > 0:
                 logging.info(f"  Ref-GPTQ required high damping: {damp}")
             break
         except RuntimeError:
@@ -203,7 +204,7 @@ class Sketcher:
             return None, None, 0
 
         # Normalize by sqrt(N * rank / 2) to stabilize numerical scale
-        scale_factor = math.sqrt(2.0) / math.sqrt(self.n_samples * self.rank)
+        scale_factor = 1.0 / math.sqrt(self.n_samples * self.rank)
         self.Y.mul_(scale_factor)
         return self.Y
 
@@ -216,7 +217,6 @@ class HessianAccumulator:
         if x.dim() == 3:
             x = x.reshape(-1, x.shape[-1])
         x = x.to(self.H.dtype)
-        self.H += x.T @ x
         self.H.addmm_(x.T, x)
         self.n_samples += x.shape[0]
 
