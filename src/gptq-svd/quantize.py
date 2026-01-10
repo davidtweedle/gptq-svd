@@ -166,6 +166,7 @@ def main():
                 Y_max_sv = torch.linalg.svdvals(Y_sketch)[0]
                 H_max_sqrt = torch.sqrt(H_max_val)
                 ratio = H_max_sqrt / Y_max_sv
+                shared_stats = None
                 logging.info(f"Spectral check for {name}:")
                 logging.info(f"   sqrt(max_eig(H)): {H_max_sqrt.item():.4f}")
                 logging.info(f"   max_sv(Y):        {Y_max_sv.item():.4f}")
@@ -180,7 +181,7 @@ def main():
                 quantizer = Quantizer(per_channel=True, w_bits=args.w_bits)
                 module_stat = {"name": f"layer_{i}.{name}", "n_cols": n}
                 solve_start = time.time()
-                if args.mode == "svd" or "eigh":
+                if args.mode == "svd" or args.mode == "eigh":
                     logging.info(f"Quantizing {name} (SVD)")
                     final_W, used_rank = gptq_svd_qr_fwrd(
                             weight_mat=W,
