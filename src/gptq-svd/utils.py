@@ -66,6 +66,10 @@ def get_args():
             "--seq_len", type=int, default=2048,
             help="Sequence length for calibration"
             )
+    data_group.add_argument(
+            "--batch_size", type=int, default=8,
+            help="Batch size for processing (default: 8)"
+            )
 
 
     # --- Quantization Configuration ---

@@ -34,6 +34,18 @@ def get_submodule(root, name):
         curr = getattr(curr, p)
     return curr
 
+def prepare_batch_kwargs(v, j, curr_batch_size, n_samples, device):
+    if isinstance(v, torch.Tensor):
+        if v.shape[0] == 1:
+            return v.repeat(curr_batch_size, *([1] * (v.ndim - 1))).to(device)
+        elif v.shape[0] == n_samples:
+            return v[j: j + curr_batch_size].to(device)
+        else:
+            return v.to(device)
+    elif isinstance(v, (list, tuple)):
+        return type(v)(prepare_batch_kwargs(x, j, curr_batch_size, n_samples, device) for x in v)
+    return v
+
 
 def main():
     args = get_args()
@@ -105,18 +117,14 @@ def main():
                     accumulator_hessian.add_batch(inp[0].detach())
                 handles.append(submodule.register_forward_hook(accumulator_sketch.hook_fn))
                 handles.append(submodule.register_forward_hook(h_hook))
-            for j in range(args.n_samples):
-                inp_batch = inps[j].unsqueeze(0).to(args.device)
-                batch_kwargs = {}
-                if layer_kwargs:
-                    for k, v in layer_kwargs.items():
-                        if isinstance(v, torch.Tensor):
-                            batch_kwargs[k] = v.detach().clone().to(args.device)
-                        elif isinstance(v, (tuple, list)):
-                            moved_list = [x.detach().clone().to(args.device) if isinstance(x, torch.Tensor) else x for x in v ]
-                            batch_kwargs[k] = tuple(moved_list) if isinstance(v, tuple) else moved_list
-                        else:
-                            batch_kwargs[k] = v
+            for j in range(0, args.n_samples, args.batch_size):
+                batch_inps_list = inps[j : j + args.batch_size]
+                inp_batch = torch.cat(batch_inps_list, dim=0).to(args.device)
+                curr_batch_size = inp_batch.shape[0]
+                batch_kwargs = {
+                        k: prepare_batch_kwargs(v, j, curr_batch_size, args.n_samples, args.device)
+                        for k, v in layer_kwargs.items()
+                        }
                 batch_kwargs["use_cache"] = False
                 batch_kwargs["attention_mask"] = None
                 out = layer(inp_batch, **batch_kwargs)[0]
@@ -166,7 +174,7 @@ def main():
                 Y_max_sv = torch.linalg.svdvals(Y_sketch)[0]
                 H_max_sqrt = torch.sqrt(H_max_val)
                 ratio = H_max_sqrt / Y_max_sv
-                shared_stats = None
+                shared_stats = {}
                 logging.info(f"Spectral check for {name}:")
                 logging.info(f"   sqrt(max_eig(H)): {H_max_sqrt.item():.4f}")
                 logging.info(f"   max_sv(Y):        {Y_max_sv.item():.4f}")
@@ -211,22 +219,22 @@ def main():
                 cleanup()
             del shared_stats
             cleanup()
-        for j in range(args.n_samples):
-            inp_batch = inps[j].unsqueeze(0).to(args.device)
-            batch_kwargs = {}
-            if layer_kwargs:
-                for k, v in layer_kwargs.items():
-                    if isinstance(v, torch.Tensor):
-                        batch_kwargs[k] = v.to(args.device)
-                    elif isinstance(v, (tuple, list)):
-                        moved_list = [x.to(args.device) if isinstance(x, torch.Tensor) else x for x in v]
-                        batch_kwargs[k] = tuple(moved_list) if isinstance(v, tuple) else moved_list
-                    else:
-                        batch_kwargs[k] = v
+        for j in range(0, args.n_samples, args.batch_size):
+            batch_inps_list = inps[j: j + args.batch_size]
+            inp_batch = torch.cat(batch_inps_list, dim=0).to(args.device)
+            curr_batch_size = inp_batch.shape[0]
+            batch_kwargs = {
+                    k: prepare_batch_kwargs(v, j, curr_batch_size, args.n_samples, args.device)
+                    for k, v in layer_kwargs.items()
+                    }
+
             batch_kwargs['use_cache'] = False
             batch_kwargs['attention_mask'] = None
-            outs[j] = layer(inp_batch, **batch_kwargs)[0].squeeze(0).to("cpu")
-            del inp_batch, batch_kwargs
+            out_batch = layer(inp_batch, **batch_kwargs)[0]
+            for sub_idx in range(curr_batch_size):
+                outs[j + sub_idx] = out_batch[sub_idx].unsqueeze(0).to("cpu")
+            del inp_batch, batch_kwargs, out_batch
+            cleanup()
         inps, outs = outs, inps
         layer = layer.to("cpu")
         cleanup()
