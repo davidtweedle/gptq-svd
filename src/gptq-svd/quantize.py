@@ -118,8 +118,7 @@ def main():
                 handles.append(submodule.register_forward_hook(accumulator_sketch.hook_fn))
                 handles.append(submodule.register_forward_hook(h_hook))
             for j in range(0, args.n_samples, args.batch_size):
-                batch_inps_list = inps[j : j + args.batch_size]
-                inp_batch = torch.cat(batch_inps_list, dim=0).to(args.device)
+                inp_batch = inps[j: j + args.batch_size].to(args.device)
                 curr_batch_size = inp_batch.shape[0]
                 batch_kwargs = {
                         k: prepare_batch_kwargs(v, j, curr_batch_size, args.n_samples, args.device)
