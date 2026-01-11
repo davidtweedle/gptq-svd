@@ -258,8 +258,8 @@ class Quantizer:
             self.zero = torch.round(-mn / self.scale).clamp(0, self.max_q)
 
     def get_expanded_params(self, m, n):
-        s_expanded = torch.repeat_interleave(self.scale, self.group_size, dim=1)
-        z_expanded = torch.repeat_interleave(self.zero, self.group_size, dim=1)
+        s_expanded = torch.repeat_interleave(self.scale, self.group_size if self.group_size > 0 else n, dim=1)
+        z_expanded = torch.repeat_interleave(self.zero, self.group_size if self.group_size > 0 else n, dim=1)
 
         return s_expanded[:, :n].squeeze(-1), z_expanded[:, :n].squeeze(-1)
 
