@@ -79,6 +79,10 @@ def get_args():
             help="Target bit-width for quantized weights"
             )
     quant_group.add_argument(
+            "--group_size", type=int, default=-1, choices=[-1, 128],
+            help="Group size for block scaling"
+            )
+    quant_group.add_argument(
             "--eps", type=float, default=1e-2,
             help="Threshold strength. For 'mean_trimmed', it is relative to the ref value. For 'energy', it is the allowed error variance."
             )

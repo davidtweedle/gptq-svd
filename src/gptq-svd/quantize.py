@@ -186,7 +186,7 @@ def main():
                 W = submodule.weight.data.float()
                 m, n = W.shape
 
-                quantizer = Quantizer(per_channel=True, w_bits=args.w_bits)
+                quantizer = Quantizer(w_bits=args.w_bits, group_size=args.group_size)
                 module_stat = {"name": f"layer_{i}.{name}", "n_cols": n}
                 solve_start = time.time()
                 if args.mode == "svd" or args.mode == "eigh":
