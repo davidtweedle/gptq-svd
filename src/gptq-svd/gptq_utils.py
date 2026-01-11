@@ -324,7 +324,7 @@ def gptq_block_kernel(
         z_col = tl.sum(z_data * mask_k, axis=1)
 
         # quantize
-        q_int = tl.extra.libdevice.rint(w_col / s_col + z_col)
+        q_int = tl.floor(w_col / s_col + z_col + 0.5)
         q_int = tl.clamp(q_int, float(MIN_VAL), float(MAX_VAL))
         q_val = (q_int - z_col) * s_col
 
