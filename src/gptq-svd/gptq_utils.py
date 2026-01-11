@@ -230,26 +230,38 @@ class Quantizer:
     Simple pseudo quantizer.
     Calculates scales based on max of absolute values of weights.
     """
-    def __init__(self, per_channel: bool = True, w_bits: int = 4):
-        self.per_channel = per_channel
+    def __init__(self, w_bits: int = 4, group_size: int = 128, sym: bool = False):
         self.w_bits = w_bits
+        self.group_size = group_size
+        self.sym = sym
+        self.max_q = 2 ** w_bits - 1
+        self.min_q = 0
         self.scale = None
-        self.max_val = 2 ** (w_bits - 1) - 1
-        self.min_val = 1 - 2 ** (w_bits - 1)
+        self.zero = None
 
-    def init_scale(self, weights: torch.Tensor):
-        if self.per_channel:
-            # scale per output channel (dim=-1)
-            max_abs, _ = torch.max(torch.abs(weights), dim=-1, keepdim=True)
+    def find_params(self, weights: torch.Tensor):
+        m, n = weights.shape
+        g_size = self.group_size if self.group_size > 0 else n
+
+        assert n % g_size == 0
+
+        w = weights.reshape(m, -1, g_size)
+
+        if self.sym:
+            max_val = torch.amax(torch.abs(w), dim=2, keepdim=True)
+            self.scale = max_val / (2 ** (self.w_bits - 1) - 1)
+            self.zero = torch.zeros_like(self.scale)
         else:
-            max_abs = torch.max(torch.abs(weights))
+            mn = torch.amin(w, dim=2, keepdim=True)
+            mx = torch.amax(w, dim=2, keepdim=True)
+            self.scale = (mx - mn).clamp(min=1e-5) / self.max_q
+            self.zero = torch.round(-mn / self.scale).clamp(0, self.max_q)
 
-        self.scale = max_abs / self.max_val
+    def get_expanded_params(self, m, n):
+        s_expanded = torch.repeat_interleave(self.scale, self.group_size, dim=1)
+        z_expanded = torch.repeat_interleave(self.zero, self.group_size, dim=1)
 
-    def quantize(self, weights: torch.Tensor) -> torch.Tensor:
-        # assumes q is of shape (m, 1) or (m, n)
-        q = torch.round(torch.clamp(weights / self.scale, min=self.min_val, max=self.max_val))
-        return q * self.scale
+        return s_expanded[:, :n].squeeze(-1), z_expanded[:, :n].squeeze(-1)
 
 
 # ==============================================================================
@@ -268,7 +280,8 @@ def gptq_block_kernel(
         stride_q_row, stride_q_col,
         stride_e_row, stride_e_col,
         stride_r_row, stride_r_col,
-        stride_s,
+        stride_s_row, stride_s_col,
+        stride_z_row, stride_z_col,
         n_rows,
         BLOCK_SIZE: tl.constexpr,
         BLOCK_ROWS: tl.constexpr,
@@ -289,14 +302,17 @@ def gptq_block_kernel(
     offsets_rows = row_start + tl.arange(0, BLOCK_ROWS)
     mask_rows = offsets_rows < n_rows
 
-    # Load scales
-    scale_ptrs = Scales_ptr + offsets_rows * stride_s
-    scales = tl.load(scale_ptrs, mask=mask_rows, other=1.0)
+    offsets_cols = tl.arange(0, BLOCK_SIZE)
 
     # Pointers for weight block
     offsets_cols = tl.arange(0, BLOCK_SIZE)
     w_ptrs = W_ptr + (offsets_rows[:, None] * stride_w_row) + (offsets_cols[None, :] * stride_w_col)
+    s_ptrs = Scales_ptr + (offsets_rows[:, None] * stride_s_row) + (offsets_cols[None, :] * stride_s_col)
+    z_ptrs = Zeros_ptr + (offsets_rows[:, None] * stride_z_row) + (offsets_cols[None, :] * stride_z_col)
+
     w_data = tl.load(w_ptrs, mask=mask_rows[:, None], other=0.0)
+    s_data = tl.load(s_ptrs, mask=mask_rows[:, None], other=1.0)
+    z_data = tl.load(z_ptrs, mask=mask_rows[:, None], other=0.0)
 
     # Iterative quantization within block
     for k in range(BLOCK_SIZE):
@@ -304,14 +320,14 @@ def gptq_block_kernel(
 
         # select current column
         w_col = tl.sum(w_data * mask_k, axis=1)
+        s_col = tl.sum(s_data * mask_k, axis=1)
+        z_col = tl.sum(z_data * mask_k, axis=1)
 
         # quantize
-        w_scaled = w_col / scales
-        w_clamped = tl.clamp(w_scaled, float(MIN_VAL), float(MAX_VAL))
-        q_int = tl.floor(w_clamped + 0.5)
-        q_val = q_int * scales
+        q_int = tl.math.round(w_col / s_col + z_col)
+        q_int = tl.clamp(q_int, float(MIN_VAL), float(MAX_VAL))
+        q_val = (q_int - z_col) * s_col
 
-        # calculate error
         error = w_col - q_val
 
         # Write output and error
@@ -329,6 +345,7 @@ def gptq_block_kernel(
         diag_mask = (offsets_cols == k)
         diag = tl.sum(r_row * diag_mask, axis=0)
         inv_diag = 1.0 / diag
+        # better to have r_row / diag ?
 
         correction_vec = r_row * inv_diag
 
@@ -348,6 +365,8 @@ def next_power_of_2(x: int) -> int:
 
 def triton_process_block(
         w_block: torch.Tensor,
+        s_block: torch.Tensor,
+        z_block: torch.Tensor,
         R_block: torch.Tensor,
         quantizer: 'Quantizer'
         ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -364,9 +383,13 @@ def triton_process_block(
     pad_cols = target_block_size - n_cols
     if pad_cols > 0:
         w_input = torch.nn.functional.pad(w_block, (0, pad_cols), mode='constant', value=0.0)
+        s_input = torch.nn.functional.pad(s_block, (0, pad_cols), mode='constant', value=1.0)
+        z_input = torch.nn.functional.pad(z_block, (0, pad_cols), mode='constant', value=0.0)
         R_input = torch.nn.functional.pad(R_block, (0, pad_cols, 0, pad_cols), mode='constant', value=1.0)
     else:
         w_input = w_block
+        s_input = s_block
+        z_input = z_block
         R_input = R_block
 
     q_output = torch.empty_like(w_input)
@@ -375,20 +398,21 @@ def triton_process_block(
     BLOCK_ROWS = 64
     grid = lambda meta: (triton.cdiv(out_features, BLOCK_ROWS),)
 
+    # add scales and zeros stride, etc.
     gptq_block_kernel[grid](
             w_input, q_output, e_output, R_input,
-            quantizer.scale.squeeze(),
-            None,  # Zeros_ptr placeholder
+            s_input, z_input,
             w_input.stride(0), w_input.stride(1),
             q_output.stride(0), q_output.stride(1),
             e_output.stride(0), e_output.stride(1),
             R_input.stride(0), R_input.stride(1),
-            quantizer.scale.stride(0),
+            s_input.stride(0), s_input.stride(1),
+            z_input.stride(0), z_input.stride(1),
             out_features,
             BLOCK_SIZE=target_block_size,
             BLOCK_ROWS=BLOCK_ROWS,
-            MIN_VAL=quantizer.min_val,
-            MAX_VAL=quantizer.max_val
+            MIN_VAL=quantizer.min_q,
+            MAX_VAL=quantizer.max_q,
             )
 
     # Unpad
@@ -434,18 +458,26 @@ def gptq_svd_qr_fwrd(
     logging.info(f"   Rank percent used: {float(current_rank) / R.shape[1]}")
 
     # Block wise quantization
-    W = weight_mat[:, perm]
-    quantizer.init_scale(W)
+    quantizer.find_params(weight_mat)
+    S_full, Z_full = quantizer.get_expanded_params(out_features, in_features)
+    W = weight_mat[:, perm].clone()
+    S = S_full[:, perm].clone()
+    Z = Z_full[:, perm].clone()
+
     Q_W = torch.zeros_like(W)
 
     for i in range(0, current_rank, block_size):
         j = min(i + block_size, current_rank)
         w_block = W[:, i:j]
+        s_block = S[:, i:j]
+        z_block = Z[:, i:j]
         R_block_diag = R[i:j, i:j]
 
         # Run Triton kernel
         w_block_quantized, E_block = triton_process_block(
                 w_block,
+                s_block,
+                z_block,
                 R_block_diag,
                 quantizer
                 )
@@ -461,8 +493,11 @@ def gptq_svd_qr_fwrd(
 
     # Quantize remaining weights directly
     if current_rank < in_features:
-        w_rem = W[:, current_rank:]
-        Q_W[:, current_rank:] = quantizer.quantize(w_rem)
+        W_tail = W[:, current_rank:]
+        S_tail = S[:, current_rank:]
+        Z_tail = Z[:, current_rank:]
+        q_tail = torch.round(W_tail / S_tail + Z_tail).clamp(quantizer.min_q, quantizer.max_q)
+        Q_W[:, current_rank:] = (q_tail - Z_tail) * S_tail
 
     # restore original column order
     inv_perm = torch.argsort(perm)
@@ -493,9 +528,13 @@ def gptq_ref_fwrd(
 
     H_inv_chol = H_inv_chol.to(dtype)
 
-    W = weight_mat[:, perm]
+    quantizer.find_params(weight_mat)
+    S_full, Z_full = quantizer.get_expanded_params(m, n)
 
-    quantizer.init_scale(W)
+    W = weight_mat[:, perm].clone()
+    S = S_full[:, perm].clone()
+    Z = Z_full[:, perm].clone()
+
     Q_final = torch.zeros_like(W)
     Losses = torch.zeros_like(W)
 
@@ -504,6 +543,8 @@ def gptq_ref_fwrd(
         i2 = min(i1 + blocksize, n)
         count = i2 - i1
         W1 = W[:, i1:i2].clone()
+        S1 = S[:, i1:i2].clone()
+        Z1 = Z[:, i1:i2].clone()
         Q1 = torch.zeros_like(W1)
         Err1 = torch.zeros_like(W1)
         Losses1 = torch.zeros_like(W1)
@@ -512,10 +553,14 @@ def gptq_ref_fwrd(
         for i in range(count):
             w = W1[:, i]
             d = Hinv1[i, i]
-            q = quantizer.quantize(w.unsqueeze(1)).flatten()
-            Q1[:, i] = q
-            Losses1[:, i] = (w - q) ** 2 / d ** 2
-            err1 = (w - q) / d
+            s = S1[:, i]
+            z = Z1[:, i]
+            q = torch.round(w / s + z).clamp(quantizer.min_q, quantizer.max_q)
+            q_dequant = (q - z) * s
+            Q1[:, i] = q_dequant
+
+            Losses1[:, i] = (w - q_dequant) ** 2 / d ** 2
+            err1 = (w - q_dequant) / d
             W1[:, i:] -= err1.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
             Err1[:, i] = err1
 
