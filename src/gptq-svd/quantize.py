@@ -85,6 +85,9 @@ def main():
     logging.info(f"\n--- Starting {args.mode.upper()} Pipeline ---")
     start_global = time.time()
 
+    if outs is None:
+        outs = [None] * len(inps)
+
     for i, layer in enumerate(layers):
         logging.info(f"Processing Layer {i + 1}/{len(layers)}...")
         layer_start_time = time.time()
