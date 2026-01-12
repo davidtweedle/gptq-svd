@@ -232,10 +232,10 @@ def main():
                     }
             batch_kwargs['use_cache'] = False
             batch_kwargs['attention_mask'] = None
-            seq_len = batch_inp.shape[1]
+            seq_len = inp_batch.shape[1]
             position_ids = torch.arange(seq_len, device=args.device).unsqueeze(0)
             batch_kwargs["position_ids"] = position_ids
-            position_embeddings = get_rope_embeddings(layer, batch_inp, position_ids)
+            position_embeddings = get_rope_embeddings(layer, inp_batch, position_ids)
             if position_embeddings is not None:
                 batch_kwargs["position_embeddings"] = position_embeddings
 
