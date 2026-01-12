@@ -12,6 +12,7 @@ import data_utils
 import model_utils
 import eval_utils
 from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd, Sketcher, process_sketch, process_hessian, process_hessian_alt, HessianAccumulator
+from model_utils import prepare_batch_kwargs
 
 
 def cleanup():
@@ -33,19 +34,6 @@ def get_submodule(root, name):
     for p in parts:
         curr = getattr(curr, p)
     return curr
-
-
-def prepare_batch_kwargs(v, j, curr_batch_size, n_samples, device):
-    if isinstance(v, torch.Tensor):
-        if v.shape[0] == 1:
-            return v.repeat(curr_batch_size, *([1] * (v.ndim - 1))).to(device)
-        elif v.shape[0] == n_samples:
-            return v[j: j + curr_batch_size].to(device)
-        else:
-            return v.to(device)
-    elif isinstance(v, (list, tuple)):
-        return type(v)(prepare_batch_kwargs(x, j, curr_batch_size, n_samples, device) for x in v)
-    return v
 
 
 def main():
@@ -78,16 +66,14 @@ def main():
 
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
-    inps, outs, layer_kwargs = model_utils.capture_initial_inputs(
+    inps, layer_kwargs = model_utils.capture_initial_inputs(
             model, input_ids_list, device=args.device
             )
+    outs = torch.zeros_like(inps)
     layers = model_utils.get_layers(model)
 
     logging.info(f"\n--- Starting {args.mode.upper()} Pipeline ---")
     start_global = time.time()
-
-    if outs is None:
-        outs = [None] * len(inps)
 
     for i, layer in enumerate(layers):
         logging.info(f"Processing Layer {i + 1}/{len(layers)}...")
@@ -122,20 +108,16 @@ def main():
                 handles.append(submodule.register_forward_hook(accumulator_sketch.hook_fn))
                 handles.append(submodule.register_forward_hook(h_hook))
             for j in range(0, args.n_samples, args.batch_size):
-                batch_slice = inps[j: j + args.batch_size]
-                if isinstance(batch_slice, list):
-                    inp_batch = torch.cat(batch_slice, dim=0).to(args.device)
-                else:
-                    inp_batch = batch_slice.to(args.device)
-                curr_batch_size = inp_batch.shape[0]
+                batch_inp = inps[j: j + args.batch_size].to(args.device)
+                curr_batch_size = batch_inp.shape[0]
                 batch_kwargs = {
-                        k: prepare_batch_kwargs(v, j, curr_batch_size, args.n_samples, args.device)
+                        k: prepare_batch_kwargs(v, args.device)
                         for k, v in layer_kwargs.items()
                         }
                 batch_kwargs["use_cache"] = False
                 batch_kwargs["attention_mask"] = None
-                out = layer(inp_batch, **batch_kwargs)[0]
-                del inp_batch, batch_kwargs, out
+                out = layer(batch_inp, **batch_kwargs)[0]
+                del batch_inp, batch_kwargs, out
                 cleanup()
             for h in handles:
                 h.remove()
@@ -228,17 +210,12 @@ def main():
             del shared_stats
             cleanup()
         for j in range(0, args.n_samples, args.batch_size):
-            batch_slice = inps[j: j + args.batch_size]
-            if isinstance(batch_slice, list):
-                inp_batch = torch.cat(batch_slice, dim=0).to(args.device)
-            else:
-                inp_batch = batch_slice.to(args.device)
+            inp_batch = inps[j: j + args.batch_size].to(args.device)
             curr_batch_size = inp_batch.shape[0]
             batch_kwargs = {
-                    k: prepare_batch_kwargs(v, j, curr_batch_size, args.n_samples, args.device)
+                    k: prepare_batch_kwargs(v, args.device)
                     for k, v in layer_kwargs.items()
                     }
-
             batch_kwargs['use_cache'] = False
             batch_kwargs['attention_mask'] = None
             out_batch = layer(inp_batch, **batch_kwargs)[0]
@@ -247,9 +224,6 @@ def main():
             del inp_batch, batch_kwargs, out_batch
             cleanup()
         inps, outs = outs, inps
-        print(f" [DEBUGGING] {type(inps)}")
-        for inp in inps:
-            print(f" [DEBUGGING] {inp.shape}")
         layer = layer.to("cpu")
         cleanup()
         logging.info(f"Layer {i + 1} Done. Time: {time.time() - layer_start_time:.2f}s")

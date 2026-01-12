@@ -9,6 +9,15 @@ import torch
 from torch import nn
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
 from typing import Tuple, List, Dict, Any
+import logging
+
+
+def prepare_batch_kwargs(v, device):
+    if isinstance(v, torch.Tensor):
+        return v.to(device)
+    elif isinstance(v, (list, tuple)):
+        return type(v)(prepare_batch_kwargs(x, device) for x in v)
+    return v
 
 
 def get_model(model_id: str, device: str = "cuda") -> Tuple[nn.Module, PreTrainedTokenizer]:
@@ -16,7 +25,7 @@ def get_model(model_id: str, device: str = "cuda") -> Tuple[nn.Module, PreTraine
     Loads a Causal LM and its tokenizer in FP16.
     Automatically detects if Flash Attention is supported.
     """
-    print(f"[MODEL] Loading {model_id}...")
+    logging.info(f"Loading {model_id}...")
 
     # check for flash attention 2
     attn_implementation = "eager"
@@ -26,7 +35,7 @@ def get_model(model_id: str, device: str = "cuda") -> Tuple[nn.Module, PreTraine
             if major >= 8:
                 import flash_attn
                 attn_implementation = "flash_attention_2"
-                print("[MODEL] Using Flash attention 2")
+                logging.info("[MODEL] Using Flash attention 2")
     except ImportError:
         pass
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
@@ -119,16 +128,15 @@ def capture_initial_inputs(
     Captures the inputs to the FIRST layer of the model.
     This allows running layer-wise quantization sequentially.
     """
-    print("[MODEL] Capturing calibration inputs...")
+    logging.info("Capturing calibration inputs...")
     layers = get_layers(model)
 
-    n_samples = len(input_ids_list)
+    n_samples = sum(b.shape[0] for b in input_ids_list)
     seq_len = input_ids_list[0].shape[1]
     hidden_dim = model.config.hidden_size
     dtype = next(model.parameters()).dtype
 
-    inps = torch.zeros((n_samples, seq_len, hidden_dim), dtype=torch.float16, device=device)
-    outs = torch.zeros_like(inps)
+    inps = torch.zeros((n_samples, seq_len, hidden_dim), dtype=dtype, device=device)
 
     cache = {'i': 0, 'layer_kwargs': None}
 
@@ -142,25 +150,12 @@ def capture_initial_inputs(
             self.module = module
 
         def forward(self, inp, **kwargs):
-            inps[cache['i']] = inp
-            cache['i'] += 1
+            bsz = inp.shape[0]
+            inps[cache['i'] : cache['i' + bsz] = inp
+            cache['i'] += bsz
 
             if cache['layer_kwargs'] is None:
-                params = {}
-                for k, v in kwargs.items():
-                    if isinstance(v, torch.Tensor):
-                        params[k] = v.to(device)
-                    elif isinstance(v, (tuple, list)):
-                        moved = []
-                        for x in v:
-                            if isinstance(x, torch.Tensor):
-                                moved.append(x.to(device))
-                            else:
-                                moved.append(x)
-                        params[k] = tuple(moved) if isinstance(v, tuple) else moved
-                    else:
-                        params[k] = v
-                cache['layer_kwargs'] = params
+                cache['layer_kwargs'] = kwargs
             raise ValueError("Stop forward")
 
         def __getattr__(self, name):
@@ -180,4 +175,4 @@ def capture_initial_inputs(
     layers[0] = layers[0].module
 
     print(f"[MODEL] Captured {n_samples} input sequences.")
-    return inps, outs, cache['layer_kwargs']
+    return inps, cache['layer_kwargs']
