@@ -115,7 +115,7 @@ def main():
                         for k, v in layer_kwargs.items()
                         }
                 batch_kwargs["use_cache"] = False
-                batch_kwargs["attention_mask"] = None
+                # batch_kwargs["attention_mask"] = None
                 out = layer(batch_inp, **batch_kwargs)[0]
                 del batch_inp, batch_kwargs, out
                 cleanup()
@@ -217,7 +217,7 @@ def main():
                     for k, v in layer_kwargs.items()
                     }
             batch_kwargs['use_cache'] = False
-            batch_kwargs['attention_mask'] = None
+            # batch_kwargs['attention_mask'] = None
             out_batch = layer(inp_batch, **batch_kwargs)[0]
             for sub_idx in range(curr_batch_size):
                 outs[j + sub_idx] = out_batch[sub_idx].unsqueeze(0).to("cpu")
