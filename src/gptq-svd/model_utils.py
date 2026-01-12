@@ -131,7 +131,7 @@ def capture_initial_inputs(
     logging.info("Capturing calibration inputs...")
     layers = get_layers(model)
 
-    n_samples = sum(b.shape[0] for b in input_ids_list)
+    n_samples = len(input_ids_list)
     seq_len = input_ids_list[0].shape[1]
     hidden_dim = model.config.hidden_size
     dtype = next(model.parameters()).dtype
@@ -150,9 +150,8 @@ def capture_initial_inputs(
             self.module = module
 
         def forward(self, inp, **kwargs):
-            bsz = inp.shape[0]
-            inps[cache['i']: cache['i'] + bsz] = inp
-            cache['i'] += bsz
+            inps[cache['i']: cache['i'] + 1] = inp
+            cache['i'] += 1
 
             if cache['layer_kwargs'] is None:
                 cache['layer_kwargs'] = kwargs
