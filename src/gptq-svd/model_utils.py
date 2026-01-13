@@ -161,6 +161,12 @@ def capture_initial_inputs(
                 cache['layer_kwargs'] = kwargs
             raise ValueError("Stop forward")
 
+        def __getattr(self, name):
+            try:
+                return super().__getattr__(name)
+            except AttributeError:
+                return getattr(self.module, name)
+
     layers[0] = Catcher(layers[0])
     model_device = next(model.parameters()).device
     for i in range(0, n_samples, batch_size):
