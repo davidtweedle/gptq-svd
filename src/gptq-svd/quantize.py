@@ -209,6 +209,8 @@ def main():
             cleanup()
         for j in range(0, args.n_samples, args.batch_size):
             inp_batch = inps[j: j + args.batch_size]
+            curr_batch_size = inp_batch.shape[0]
+            seq_len = inp_batch.shape[1]
             batch_kwargs = {k: prepare_batch_kwargs(v, args.device) for k, v in layer_kwargs.items()}
             batch_kwargs["use_cache"] = False
             batch_kwargs["past_key_values"] = None
