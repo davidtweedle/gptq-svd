@@ -71,7 +71,7 @@ def main():
             )
     outs = torch.zeros_like(inps)
     layers = model_utils.get_layers(model)
-    rotary_emb = model.model.rotary_emb
+#    rotary_emb = model.model.rotary_emb
 
     logging.info(f"\n--- Starting {args.mode.upper()} Pipeline ---")
     start_global = time.time()
@@ -110,22 +110,10 @@ def main():
                 handles.append(submodule.register_forward_hook(h_hook))
             for j in range(0, args.n_samples, args.batch_size):
                 batch_inp = inps[j: j + args.batch_size]
-                curr_batch_size = batch_inp.shape[0]
-                seq_len = batch_inp.shape[1]
+                batch_kwargs = {k: v for k, v in layer_kwargs.items()}
+                batch_kwargs["use_cache"] = False
+                batch_kwargs["past_key_values"] = None
 
-                position_ids = torch.arange(seq_len, dtype=torch.long, device=args.device).unsqueeze(0)
-                cos, sin = rotary_emb(batch_inp, position_ids)
-                mask = torch.tril(torch.ones((seq_len, seq_len), device=args.device))
-                min_dtype = torch.finfo(batch_inp.dtype).min
-                attention_mask = torch.zeros((1, 1, seq_len, seq_len), device=args.device, dtype=batch_inp.dtype)
-                attention_mask = attention_mask.masked_fill(mask == 0, min_dtype)
-                batch_kwargs = {
-                        "use_cache": False,
-                        "past_key_values": None,
-                        "attention_mask": attention_mask,
-                        "position_ids": position_ids,
-                        "position_embeddings": (cos, sin)
-                        }
                 out = layer(batch_inp, **batch_kwargs)[0]
                 del batch_inp, batch_kwargs, out
                 cleanup()
@@ -221,22 +209,9 @@ def main():
             cleanup()
         for j in range(0, args.n_samples, args.batch_size):
             inp_batch = inps[j: j + args.batch_size]
-            curr_batch_size = inp_batch.shape[0]
-            seq_len = inp_batch.shape[1]
-            position_ids = torch.arange(seq_len, dtype=torch.long, device=args.device).unsqueeze(0)
-            cos, sin = rotary_emb(inp_batch, position_ids)
-            mask = torch.tril(torch.ones((seq_len, seq_len), device=args.device))
-            min_dtype = torch.finfo(inp_batch.dtype).min
-            attention_mask = torch.zeros((1, 1, seq_len, seq_len), device=args.device, dtype=inp_batch.dtype)
-            attention_mask = attention_mask.masked_fill(mask == 0, min_dtype)
-
-            batch_kwargs = {
-                    "use_cache": False,
-                    "past_key_values": None,
-                    "attention_mask": attention_mask,
-                    "position_ids": position_ids,
-                    "position_embeddings": (cos, sin)
-                    }
+            batch_kwargs = {k: v for k, v in layer_kwargs.items()}
+            batch_kwargs["use_cache"] = False
+            batch_kwargs["past_key_values"] = None
             out_batch = layer(inp_batch, **batch_kwargs)[0]
             for i in range(curr_batch_size):
                 outs[j + i] = out_batch[i]
