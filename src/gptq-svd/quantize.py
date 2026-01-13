@@ -114,15 +114,8 @@ def main():
                 seq_len = batch_inp.shape[1]
                 batch_kwargs = {k: prepare_batch_kwargs(v, args.device) for k, v in layer_kwargs.items()}
                 batch_kwargs["use_cache"] = False
-                position_ids = torch.arange(seq_len, dtype=torch.long, device=args.device).unsqueeze(0)
-                batch_kwargs["position_ids"] = position_ids
-                cos, sin = rotary_emb(batch_inp, position_ids)
-                batch_kwargs["position_embeddings"] = (cos.to(args.device), sin.to(args.device))
-                for k in ["cache_position", "past_key_values"]:
-                    if k in batch_kwargs:
-                        del batch_kwargs[k]
-                out = layer(batch_inp, **batch_kwargs)[0]
-                del batch_inp, batch_kwargs, out
+                layer(batch_inp, **batch_kwargs)
+                del batch_inp, batch_kwargs
                 cleanup()
             for h in handles:
                 h.remove()
@@ -216,18 +209,11 @@ def main():
             cleanup()
         for j in range(0, args.n_samples, args.batch_size):
             inp_batch = inps[j: j + args.batch_size]
-            curr_batch_size = inp_batch.shape[0]
-            seq_len = inp_batch.shape[1]
             batch_kwargs = {k: prepare_batch_kwargs(v, args.device) for k, v in layer_kwargs.items()}
             batch_kwargs["use_cache"] = False
-            position_ids = torch.arange(seq_len, dtype=torch.long, device=args.device).unsqueeze(0)
-            batch_kwargs["position_ids"] = position_ids
-            cos, sin = rotary_emb(inp_batch, position_ids)
-            batch_kwargs["position_embeddings"] = (cos.to(args.device), sin.to(args.device))
-            for k in ["cache_position", "past_key_values"]:
-                if k in batch_kwargs:
-                    del batch_kwargs[k]
-            out_batch = layer(inp_batch, **batch_kwargs)[0]
+            out_batch = layer(inp_batch, **batch_kwargs)
+            if isinstance(out_batch, tuple):
+                out_batch = out_batch[0]
             for i in range(curr_batch_size):
                 outs[j + i] = out_batch[i]
             del inp_batch, batch_kwargs, out_batch
