@@ -214,8 +214,8 @@ def main():
             out_batch = layer(inp_batch, **batch_kwargs)
             if isinstance(out_batch, tuple):
                 out_batch = out_batch[0]
-            for i in range(curr_batch_size):
-                outs[j + i] = out_batch[i]
+            for idx in range(curr_batch_size):
+                outs[j + idx] = out_batch[idx]
             del inp_batch, batch_kwargs, out_batch
             cleanup()
         inps, outs = outs, inps
