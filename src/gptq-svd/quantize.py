@@ -71,7 +71,7 @@ def main():
             )
     outs = torch.zeros_like(inps)
     layers = model_utils.get_layers(model)
-#    rotary_emb = model.model.rotary_emb
+    rotary_emb = model.model.rotary_emb
 
     logging.info(f"\n--- Starting {args.mode.upper()} Pipeline ---")
     start_global = time.time()
@@ -110,10 +110,18 @@ def main():
                 handles.append(submodule.register_forward_hook(h_hook))
             for j in range(0, args.n_samples, args.batch_size):
                 batch_inp = inps[j: j + args.batch_size]
+                curr_batch_size = batch_inp.shape[0]
+                seq_len = batch_inp.shape[1]
                 batch_kwargs = {k: prepare_batch_kwargs(v, args.device) for k, v in layer_kwargs.items()}
                 batch_kwargs["use_cache"] = False
-                batch_kwargs["past_key_values"] = None
-
+                batch_kwargs["attention_mask"] = None
+                position_ids = torch.arange(seq_len, dtype=torch.long, device=args.device)
+                batch_kwargs["position_ids"] = position_ids
+                cos, sin = rotary_emb(batch_inp, position_ids)
+                batch_kwargs["position_embeddings"] = (cos.to(args.device), sin.to(args.device))
+                for k in ["cache_position", "past_key_values"]:
+                    if k in batch_kwargs:
+                        del batch_kwargs[k]
                 out = layer(batch_inp, **batch_kwargs)[0]
                 del batch_inp, batch_kwargs, out
                 cleanup()
@@ -213,7 +221,14 @@ def main():
             seq_len = inp_batch.shape[1]
             batch_kwargs = {k: prepare_batch_kwargs(v, args.device) for k, v in layer_kwargs.items()}
             batch_kwargs["use_cache"] = False
-            batch_kwargs["past_key_values"] = None
+            batch_kwargs["attention_mask"] = None
+            position_ids = torch.arange(seq_len, dtype=torch.long, device=args.device).unsqueeze(0)
+            batch_kwargs["position_ids"] = position_ids
+            cos, sin = rotary_emb(batch_inp, position_ids)
+            batch_kwargs["position_embeddings"] = (cos.to(args.device), sin.to(args.device))
+            for k in ["cache_position", "past_key_values"]:
+                if k in batch_kwargs:
+                    del batch_kwargs[k]
             out_batch = layer(inp_batch, **batch_kwargs)[0]
             for i in range(curr_batch_size):
                 outs[j + i] = out_batch[i]
