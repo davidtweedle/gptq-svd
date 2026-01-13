@@ -29,15 +29,15 @@ def get_model(model_id: str, device: str = "cuda") -> Tuple[nn.Module, PreTraine
 
     # check for flash attention 2
     attn_implementation = "eager"
-#    try:
-#        if torch.cuda.is_available():
-#            major, _ = torch.cuda.get_device_capability()
-#            if major >= 8:
-#                import flash_attn
-#                attn_implementation = "flash_attention_2"
-#                logging.info("[MODEL] Using Flash attention 2")
-#    except ImportError:
-#        pass
+    try:
+        if torch.cuda.is_available():
+            major, _ = torch.cuda.get_device_capability()
+            if major >= 8:
+                import flash_attn
+                attn_implementation = "flash_attention_2"
+                logging.info("[MODEL] Using Flash attention 2")
+    except ImportError:
+        pass
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(
             model_id,
