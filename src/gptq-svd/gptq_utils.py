@@ -112,16 +112,19 @@ def process_hessian_alt(
     S_inv = 1.0 / S
     H_sqrt = S.unsqueeze(1) * Vh
     H_sqrt_jax = from_dlpack(H_sqrt)
-    _, _, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
+    _, R_x_jax, perm_jax = jax.scipy.linalg.qr(H_sqrt_jax, pivoting=True, mode='economic')
     perm = torch.from_dlpack(perm_jax).long()
+    R_x = torch.from_dlpack(R_x_jax)
     del H_sqrt_jax
     H_inv_partial = S_inv.unsqueeze(1) * Vh
     H_inv_permuted = H_inv_partial[:, perm]
     _, R_prime = torch.linalg.qr(H_inv_permuted, mode='reduced')
     diag_sign = torch.sign(torch.diagonal(R_prime))
-    R = (R_prime * diag_sign.unsqueeze(1))
+    diag_sign_x = torch.sign(torch.diagonal(R_x))
+    R_x = R_x * diag_sign_x.unsqueeze(1)
+    R = R_prime * diag_sign.unsqueeze(1)
 
-    return R, perm
+    return R, R_x, perm
 
 
 def process_hessian(
@@ -262,6 +265,25 @@ class Quantizer:
         z_expanded = torch.repeat_interleave(self.zero, self.group_size if self.group_size > 0 else n, dim=1)
 
         return s_expanded[:, :n].squeeze(-1), z_expanded[:, :n].squeeze(-1)
+
+
+def log_quantization_error(
+        W_orig: torch.Tensor,
+        W_quant: torch.Tensor,
+        R_x: torch.Tensor,
+        perm: torch.Tensor
+        ):
+    if R_x is None or perm is None:
+        return
+    w_dtype = W_orig.dtype
+    r_device = W_orig.device
+    R_mat = R_x.to(device=r_device, dtype=torch.float32)
+    W_o = W_orig[:, perm]
+    W_q = W_quant[:, perm]
+    y_orig_norm = torch.linalg.norm(torch.matmul(W_o, R_mat.T))
+    y_diff_norm = torch.linalg.norm(torch.matmul(W_o - W_q, R_mat.T))
+    relative_error = (y_diff_norm / y_orig_norm).item()
+    logging.info(f"   [Metric] Relative prediction error: {relative_error:.6f}")
 
 
 # ==============================================================================
@@ -435,7 +457,8 @@ def gptq_svd_qr_fwrd(
         R: torch.Tensor,
         quantizer: Quantizer,
         perm: torch.Tensor,
-        block_size: int = 1024
+        block_size: int = 1024,
+        R_x: Optional[torch.Tensor] = None
         ) -> Tuple[torch.Tensor, int]:
     """
     SVD/QR with pivoting based GPTQ using pre-computed sketch
@@ -498,10 +521,14 @@ def gptq_svd_qr_fwrd(
         Z_tail = Z[:, current_rank:]
         q_tail = torch.round(W_tail / S_tail + Z_tail).clamp(quantizer.min_q, quantizer.max_q)
         Q_W[:, current_rank:] = (q_tail - Z_tail) * S_tail
+    
 
     # restore original column order
     inv_perm = torch.argsort(perm)
     final_W = Q_W[:, inv_perm]
+
+    if R_x is not None:
+        log_quantization_error(weight_mat, final_W, R_x, perm)
 
     return final_W, current_rank
 

@@ -15,6 +15,12 @@ from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd, Sketcher, pro
 from model_utils import prepare_batch_kwargs
 
 
+def log_header(msg):
+    logging.info(f"\n{'='*20} {msg} {'='*20}")
+
+def log_substep(msg):
+    logging.info(f"  [>] {msg}")
+
 def cleanup():
     """
     Forces aggressive garbage collection to prevent VRAM fragmentation.
@@ -40,8 +46,10 @@ def main():
     args = get_args()
     setup_logging(args.save_path)
 
-    logging.info(f"Starting quantization for {args.model_id}...")
-    logging.info(f"Config: Mode={args.mode.upper()} | Eps={args.eps} | SketchRatio={args.sketch_ratio}")
+    log_header("INITIALIZING QUANTIZATION")
+    logging.info(f"Model:  {args.model_id}")
+    logging.info(f"Mode:   {args.mode.upper()}")
+    logging.info(f"Params: Bits={args.w_bits}, Group={args.group_size}, Eps={args.eps}")
 
     torch.manual_seed(args.seed)
     torch.set_grad_enabled(False)
@@ -59,13 +67,15 @@ def main():
         model.seqlen = args.seq_len
 
     if args.mode == "baseline":
-        logging.info("Running Baseline PPL check (FP16)...")
+        log_header("BASELINE EVALUATION")
         ppl_baseline = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
         logging.info(f"Baseline PPL: {ppl_baseline:.2f}")
         return
 
+    log_substep(f"Loading dataset: {args.dataset}")
     input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
 
+    log_substep("Capturing initial activations...")
     inps, layer_kwargs = model_utils.capture_initial_inputs(
             model, input_ids_list, device=args.device, batch_size=args.batch_size
             )
@@ -73,18 +83,18 @@ def main():
     layers = model_utils.get_layers(model)
     rotary_emb = model.model.rotary_emb
 
-    logging.info(f"\n--- Starting {args.mode.upper()} Pipeline ---")
+    log_header(f"PIPELINE: {args.mode.upper()}")
     start_global = time.time()
 
     for i, layer in enumerate(layers):
-        logging.info(f"Processing Layer {i + 1}/{len(layers)}...")
+        prefix = f"Layer {i+1}/{len(layers)}"
         layer_start_time = time.time()
         layer = layer.to(args.device)
 
         groups = model_utils.get_sequenced_groups(layer)
 
         for group_idx, group_names in enumerate(groups):
-            logging.info(f"  -> Group {group_idx+1}: {group_names} Inputs")
+            logging.info(f"[{prefix}] Group {group_idx + 1}: {', '.join(group_names)}")
 
             handles = []
             name = group_names[0]
@@ -108,7 +118,8 @@ def main():
                     accumulator_hessian.add_batch(inp[0].detach())
                 handles.append(submodule.register_forward_hook(accumulator_sketch.hook_fn))
                 handles.append(submodule.register_forward_hook(h_hook))
-            for j in range(0, args.n_samples, args.batch_size):
+            pbar = tqdm(range(0, args.n_samples, args.batch_size), desc="  Accumulating", leave=False)
+            for j in pbar:
                 batch_inp = inps[j: j + args.batch_size]
                 curr_batch_size = batch_inp.shape[0]
                 seq_len = batch_inp.shape[1]
@@ -121,6 +132,7 @@ def main():
                 h.remove()
             cleanup()
             layer_ranks = []
+            proc_start = time.time()
             if args.mode == 'svd':
                 Y_sketch = accumulator.get_scaled_sketch()
                 del accumulator
@@ -147,12 +159,12 @@ def main():
             elif args.mode == 'eigh':
                 H_matrix = accumulator.get_hessian()
                 del accumulator
-                R, perm = process_hessian_alt(
+                R, R_x, perm = process_hessian_alt(
                         H=H_matrix,
                         threshold=args.eps,
                         threshold_method=args.threshold_method
                         )
-                shared_stats = {"R": R, "perm": perm}
+                shared_stats = {"R": R, "R_x": R_x, "perm": perm}
             elif args.mode == 'test':
                 H_matrix = accumulator_hessian.get_hessian()
                 Y_sketch = accumulator_sketch.get_scaled_sketch()
@@ -168,27 +180,26 @@ def main():
                 logging.info(f"   max_sv(Y):        {Y_max_sv.item():.4f}")
                 logging.info(f"   ratio:            {ratio.item():.4f}")
 
-            logging.info(f"Time for processing inputs of {name}: {time.time() - capture_start}s")
             for name in group_names:
                 submodule = get_submodule(layer, name)
                 W = submodule.weight.data.float()
                 m, n = W.shape
 
                 quantizer = Quantizer(w_bits=args.w_bits, group_size=args.group_size)
-                module_stat = {"name": f"layer_{i}.{name}", "n_cols": n}
                 solve_start = time.time()
-                if args.mode == "svd" or args.mode == "eigh":
-                    logging.info(f"Quantizing {name} (SVD)")
+
+                used_rank = "N/A"
+                if args.mode in {"svd", "eigh"}:
                     final_W, used_rank = gptq_svd_qr_fwrd(
                             weight_mat=W,
                             R=shared_stats["R"],
                             quantizer=quantizer,
                             perm=shared_stats["perm"],
-                            block_size=1024
+                            block_size=1024,
+                            R_x=shared_stats.get("R_x")
                             )
                     module_stat["rank_kept"] = used_rank
                 elif args.mode == "gptq":
-                    logging.info(f"Quantizing {name} (Ref-GPTQ)...")
                     final_W = torch.zeros_like(W)
                     gptq_ref_fwrd(
                             H_inv_chol=shared_stats["R"],
@@ -200,10 +211,10 @@ def main():
                             )
                 elif args.mode == "test":
                     final_W = W
-                    logging.info(f"Test mode - skipping quantization.")
                 submodule.weight.copy_(final_W)
-                module_stat["solve_time"] = time.time() - solve_start
-                experiment_log["layer_stats"].append(module_stat)
+                solve_time = time.time() - solve_start
+                logging.info(f"   {name: <15} | Rank: {str(used_rank): <4} | Time: {solve_time:.2f}s") 
+                experiment_log["layer_stats"].append({"name": f"layer_{i}.{name}", "rank": used_rank, "time": solve_time})
                 cleanup()
             del shared_stats
             cleanup()
@@ -220,18 +231,19 @@ def main():
             cleanup()
         inps, outs = outs, inps
         layer = layer.to("cpu")
+        logging.info(f"[*] {prefix} completed in {time.time() - layer_start_time:.2f}s")
         cleanup()
-        logging.info(f"Layer {i + 1} Done. Time: {time.time() - layer_start_time:.2f}s")
     del inps, outs
     if 'layer_kwargs' in locals():
         del layer_kwargs
     cleanup()
     total_duration = time.time() - start_global
+    log_header("COMPLETED")
+    logging.info(f"Total processing time: {total_duration/60:.2f} minutes")
     experiment_log["metrics"]["total_time"] = total_duration
 
-    logging.info(f"Quantization finished in {total_duration:.2f}s")
     if not args.no_save:
-        logging.info(f"Saving model to {args.save_path}...")
+        log_substep(f"Saving model to {args.save_path}...")
         try:
             model.cpu()
             model.save_pretrained(args.save_path, safe_serialization=False)
@@ -244,15 +256,15 @@ def main():
 
     else:
         logging.info("Skipping model weight save (--no_save was set).")
+    log_substep("Running final evaluation...")
     model.to(args.device)
 
     ppl_q = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
-    logging.info(f"{args.mode.upper()} PPL: {ppl_q:.2f}")
-    experiment_log["metrics"]["quantized_ppl"] = ppl_q
+    logging.info(f"Final Quantized PPL: {ppl_q:.4f}")
+    experiment_log["metrics"] = {"total_time": total_duration, "quantized_ppl": ppl_q}
     log_file = os.path.join(args.save_path, "results.json")
     with open(log_file, "w") as f:
         json.dump(experiment_log, f, indent=4)
-    logging.info(f"Results saved to {log_file}")
 
 
 if __name__ == "__main__":

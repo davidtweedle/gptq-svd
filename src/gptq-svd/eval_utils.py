@@ -12,17 +12,20 @@ from tqdm import tqdm
 import logging
 from typing import Optional
 
+logger = logging.getLogger(__name__)
 
 def evaluate_perplexity(
         model: nn.Module,
         tokenizer,
         dataset: str = "wikitext2",
-        device: str = "cuda"
+        device: str = "cuda",
+        batch_size=4,
+        stride=512
         ) -> float:
     """
     Evaluates model perplexity on wikitext2 test set.
     """
-    logging.info(f"---Evaluating perplexity on {dataset} ---")
+    logger.info(f"  [eval] Loading {dataset}...")
 
     if dataset == "wikitext2":
         testdata = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
@@ -38,33 +41,58 @@ def evaluate_perplexity(
     else:
         max_length = 2048
 
-    stride = 512
-    seq_len = encodings.input_ids.size(1)
+    dataset_size = encodings.input_ids.size(1)
 
-    nlls = []
+    logger.info(f"  [eval] Dataset tokens: {dataset_size} | Window: {max_length} | Stride: {stride}")
+
+    requests = []
     prev_end_loc = 0
+    for begin_loc in range(0, dataset_size, stride):
+        end_loc = min(begin_loc + window_size, dataset_size)
+
+        target_len = end_loc - prev_end_loc
+
+        requests.append({
+            "begin": begin_loc,
+            "end": end_loc,
+            "target_len": target_len
+            })
+        
+        prev_end_loc = end_loc
+        if end_loc == dataset_size:
+            break
+
 
     model.eval()
+    total_nll = 0.0
+    total_tokens = 0
 
-    pbar = tqdm(range(0, seq_len, stride), desc="Evaluating PPL")
-    for begin_loc in pbar:
-        end_loc = min(begin_loc + max_length, seq_len)
-        trg_len = end_loc - prev_end_loc
+    pbar = tqdm(range(0, len(requests), batch_size), desc="  [eval] Progress", leave=False)
+    for i in pbar:
+        batch_requests = requests[i: i + batch_size]
 
-        input_ids = encodings.input_ids[:, begin_loc:end_loc].to(device)
-        target_ids = input_ids.clone()
-        target_ids[:, :-trg_len] = -100
+        input_ids_list = []
+        target_ids_list = []
+        for req in batch_requests:
+            inp = encodings.input_ids[:, req["begin"]:req["end"]]
+            tar = inp.clone()
+            tar[:, :-req["target_len"]] = -100
+            pad_len = window_size - inp.shape[1]
+            if pad_len > 0:
+                inp = torch.cat([inp, torch.full((1, pad_len), tokenizer.pad_token_id)], dim=1)
+                tar = torch.cat([tar, torch.full((1, pad_len), -100)], dim=1)
+            input_ids_list.append(inp)
+            target_ids_list.append(tar)
+        input_ids = torch.cat(input_ids_list, dim=0).to(device)
+        target_ids = torch.cat(target_ids_list, dim=0).to(device)
 
-        with torch.no_grad():
-            outputs = model(input_ids, labels=target_ids)
-            neg_log_likelihood = outputs.loss * trg_len
+        outputs = model(input_ids, labels=target_ids)
+        num_active_tokens = (target_ids != -100).sum().item()
+        total_nll += outputs.loss.float().item() * num_active_tokens
+        total_tokens += num_active_tokens
 
-        nlls.append(neg_log_likelihood)
-        prev_end_loc = end_loc
-        if end_loc == seq_len:
-            break
-    total_nll = torch.stack(nlls).sum()
-    ppl = torch.exp(total_nll / prev_end_loc)
-
-    print(f"\nPerplexity: {ppl.item():.4f}")
-    return ppl.item()
+        if total_tokens > 0:
+            current_ppl = torch.exp(torch.tensor(total_nll / total_tokens)).item()
+            pbar.set_postfix({"ppl": f"{current_ppl:.2f}"})
+    final_ppl = torch.exp(torch.tensor(total_nll / total_tokens)).item()
+    return final_ppl
