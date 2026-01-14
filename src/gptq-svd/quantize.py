@@ -14,6 +14,24 @@ import eval_utils
 from gptq_utils import gptq_svd_qr_fwrd, Quantizer, gptq_ref_fwrd, Sketcher, process_sketch, process_hessian, process_hessian_alt, HessianAccumulator
 from model_utils import prepare_batch_kwargs
 
+def get_group_optimal_eps(group_names, w_bits):
+    first_layer = group_names[0]
+    if any(x in first_layer for x in ["q_proj", "k_proj", "v_proj"]):
+        if w_bits == 3:
+            return 1e-5
+        return 1e-6
+    if "o_proj" in first_layer:
+        if w_bits == 3:
+            return 1e-7
+        return 1e-6
+    if any(x in first_layer for x in ["gate_proj", "up_proj"]):
+        return 1e-5
+    if "down_proj" in first_layer:
+        if w_bits == 3:
+            return 1e-5
+        return 1e-6
+    return 1e-6
+
 
 def log_header(msg):
     logging.info(f"\n{'='*20} {msg} {'='*20}")
@@ -95,6 +113,8 @@ def main():
 
         for group_idx, group_names in enumerate(groups):
             logging.info(f"[{prefix}] Group {group_idx + 1}: {', '.join(group_names)}")
+            group_eps = get_group_optimal_eps(group_names, args.w_bits)
+            logging.info(f"    Using Optimized Group Eps: {group_eps:.1e}")
 
             handles = []
             name = group_names[0]
@@ -161,7 +181,7 @@ def main():
                 del accumulator
                 R, R_x, perm = process_hessian_alt(
                         H=H_matrix,
-                        threshold=args.eps,
+                        threshold=group_eps,
                         threshold_method=args.threshold_method
                         )
                 shared_stats = {"R": R, "R_x": R_x, "perm": perm}
