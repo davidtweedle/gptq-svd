@@ -83,6 +83,10 @@ def get_args():
             help="Group size for block scaling"
             )
     quant_group.add_argument(
+            "--sym", action="store_true",
+            help="Use symmetric quantization."
+            )
+    quant_group.add_argument(
             "--eps", type=float, default=1e-2,
             help="Threshold strength. For 'mean_trimmed', it is relative to the ref value. For 'energy', it is the allowed error variance."
             )
@@ -105,6 +109,10 @@ def get_args():
     quant_group.add_argument(
             "--damp_percent", type=float, default=0.01,
             help="Damping fraction for reference gptq (default: 0.01)"
+            )
+    quant_group.add_argument(
+            "--adaptive_eps", action="store_true",
+            help="Scale epsilon down by 10x for senstive layers (down_proj, o_proj)."
             )
 
     # --- Output Configuration ---

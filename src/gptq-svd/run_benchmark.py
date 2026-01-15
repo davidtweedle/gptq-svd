@@ -16,10 +16,38 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"benchmark_results_{TIMESTAMP}")
 experiments = []
 
+experiments.append({
+    "name": "FP16_Baseline",
+    "mode": "baseline",
+    "w_bits": 16,
+    "group": 0,
+    "sym": False,
+    "algo": "FP16",
+    "eps": 0.0
+    })
+
 for bits in [4, 3, 2]:
-    for base_eps in [1e-6, 1e-5, 1e-4, 1e-3]:
+    for sym in [False, True]:
         for group in [-1, 128]:
-            sym = True
+            sym_label = "Sym" if sym else "Asym"
+            experiments.append({
+                "name": f"GPTQ_W{bits}_{sym_label}",
+                "mode": "gptq",
+                "w_bits": bits,
+                "group": group,
+                "sym": sym,
+                "algo": "GPTQ",
+                "adaptive_eps": False,
+                "eps": 0.0
+                })
+
+for bits in [4, 3, 2]:
+    if bits == 3:
+        base_eps = 0.0001
+    else:
+        base_eps = 0.00001
+    for sym in [False, True]:
+        for group in [-1, 128]:
             sym_label = "Sym" if sym else "Asym"
             experiments.append({
                 "name": f"SVD_W{bits}_{sym_label}_adaptive",
@@ -110,7 +138,7 @@ def main():
         results.append(row)
 
         pd.DataFrame(results).to_csv(BASE_SAVE_DIR / "results_partial.csv", index=False)
-    print("\n\n=== EXPERIMENTS COMPLETED ===")
+    print("\n\n=== BENCHMARK COMPLETED ===")
     df = pd.DataFrame(results)
 
     display_cols = ["algo", "w_bits", "sym", "ppl", "time_s", "status"]
@@ -121,7 +149,7 @@ def main():
 
     print(final_df.to_string(index=False))
 
-    final_path = BASE_SAVE_DIR / "final_results.csv"
+    final_path = BASE_SAVE_DIR / "final_benchmark.csv"
     final_df.to_csv(final_path, index=False)
     print(f"\nSaved to: {final_path}")
 
