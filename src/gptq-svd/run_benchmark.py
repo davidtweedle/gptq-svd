@@ -64,7 +64,7 @@ def run_command(cmd_list):
     cmd_str = " ".join(cmd_list)
     print(f"\n[EXEC] {cmd_str}")
     with subprocess.Popen(
-            cmd,
+            cmd_str,
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
