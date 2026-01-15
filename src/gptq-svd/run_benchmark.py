@@ -27,38 +27,62 @@ experiments.append({
     })
 
 for bits in [4, 3, 2]:
-    for sym in [False, True]:
-        for group in [-1, 128]:
-            sym_label = "Sym" if sym else "Asym"
-            experiments.append({
-                "name": f"GPTQ_W{bits}_{sym_label}",
-                "mode": "gptq",
-                "w_bits": bits,
-                "group": group,
-                "sym": sym,
-                "algo": "GPTQ",
-                "adaptive_eps": False,
-                "eps": 0.0
-                })
+    sym = False
+    group = 128
+    sym_label = "Sym" if sym else "Asym"
+    experiments.append({
+        "name": f"GPTQ_W{bits}_{sym_label}",
+        "mode": "gptq",
+        "w_bits": bits,
+        "group": group,
+        "sym": sym,
+        "algo": "GPTQ",
+        "eps": 0.0
+        })
 
+for bits in [4, 3]:
+    group = 128
+    sym = True
+    sym_label = "Sym" if sym else "Asym"
+    experiments.append({
+        "name": f"GPTQ_W{bits}_{sym_label}",
+        "mode": "gptq",
+        "w_bits": bits,
+        "sym": sym,
+        "algo": "GPTQ",
+        "group": group,
+        })
+        
 for bits in [4, 3, 2]:
-    if bits == 3:
-        base_eps = 0.0001
-    else:
-        base_eps = 0.00001
-    for sym in [False, True]:
-        for group in [-1, 128]:
-            sym_label = "Sym" if sym else "Asym"
-            experiments.append({
-                "name": f"SVD_W{bits}_{sym_label}_adaptive",
-                "mode": "eigh",
-                "w_bits": bits,
-                "group": group,
-                "sym": sym,
-                "algo": "SVD-quant",
-                "adaptive_eps": True,
-                "eps": base_eps
-                })
+    base_eps = 0.0001 if bits == 1 else 0.00001
+    sym = False
+    group = 128
+    experiments.append({
+        "name": f"Spec_W{bits}_{sym}_Adaptive",
+        "mode": "eigh",
+        "w_bits": bits,
+        "sym": sym,
+        "algo": "Spec-Quant",
+        "group": group,
+        "adaptive_eps": True,
+        "eps": base_eps
+        })
+
+for bits in [4, 3]:
+    base_eps = 0.0001 if bits == 3 else 0.00001
+    sym = True
+    group = 128
+    experiments.append({
+        "name": f"Spec_W{bits}_{sym}_Adaptive",
+        "mode": "eigh",
+        "w_bits": bits,
+        "sym": sym,
+        "algo": "Spec-Quant",
+        "group": 128,
+        "adaptive_eps": True,
+        "eps": base_eps
+        })
+
 
 def run_command(cmd_list):
     cmd_str = " ".join(cmd_list)
