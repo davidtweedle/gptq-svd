@@ -15,9 +15,9 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"benchmark_results_{TIMESTAMP}")
 experiments = []
 
-for bits in [4, 3, 2]:
-    for base_eps in [1e-5, 1e-4, 1e-3]:
-        for group in [-1, 128]:
+for bits in [4, 3]:
+    for base_eps in [1e-6, 1e-5, 1e-4, 1e-3]:
+        for group in [128]:
             sym = True
             sym_label = "Sym" if sym else "Asym"
             experiments.append({
@@ -31,6 +31,24 @@ for bits in [4, 3, 2]:
                 "eps": base_eps,
                 "batch_size": 32
                 })
+
+for bits in [4, 3, 2]:
+    for base_eps in [1e-6, 1e-5, 1e-4]:
+        for group in [128]:
+            sym = False
+            sym_label = "Sym" if sym else "Asym"
+            experiments.append({
+                "name": f"SVD_W{bits}_{sym_label}_adaptive",
+                "mode": "eigh",
+                "w_bits": bits,
+                "group": group,
+                "sym": sym,
+                "algo": "SVD-quant",
+                "adaptive_eps": True,
+                "eps": base_eps,
+                "batch_size": 32
+                })
+
 
 def run_command(cmd_list):
     cmd_str = " ".join(cmd_list)
