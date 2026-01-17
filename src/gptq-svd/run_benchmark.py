@@ -55,8 +55,9 @@ for bits in [4, 3]:
         "batch_size": 32
         })
 
-for bits in [4, 3, 2]:
-    base_eps = 0.0001 if bits == 1 else 0.00001
+eps_list = [1e-6, 1e-4, 1e-5]
+for bits, eps in zip([4, 3, 2], eps_list):
+    base_eps = eps
     sym = False
     group = 128
     experiments.append({
@@ -66,13 +67,14 @@ for bits in [4, 3, 2]:
         "sym": sym,
         "algo": "Spec-Quant",
         "group": group,
-        "adaptive_eps": True,
+        "adaptive_eps": False,
         "eps": base_eps,
         "batch_size": 32
         })
 
-for bits in [4, 3]:
-    base_eps = 0.0001 if bits == 3 else 0.00001
+eps_list = [1e-6, 1e-4]
+for bits, eps in zip([4, 3], eps_list):
+    base_eps = eps
     sym = True
     group = 128
     experiments.append({
@@ -82,7 +84,7 @@ for bits in [4, 3]:
         "sym": sym,
         "algo": "Spec-Quant",
         "group": 128,
-        "adaptive_eps": True,
+        "adaptive_eps": False,
         "eps": base_eps,
         "batch_size": 32
         })
