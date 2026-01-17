@@ -72,7 +72,7 @@ for bits, eps in zip([4, 3, 2], eps_list):
         "batch_size": 32
         })
 
-eps_list = [1e-6, 1e-4]
+eps_list = [1e-5, 1e-4]
 for bits, eps in zip([4, 3], eps_list):
     base_eps = eps
     sym = True
