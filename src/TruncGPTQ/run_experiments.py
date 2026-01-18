@@ -3,7 +3,6 @@ import json
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
-import sys
 
 # --- Configuration ---
 PYTHON_INTERPRETER = "python"
@@ -16,78 +15,39 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"benchmark_results_{TIMESTAMP}")
 experiments = []
 
-experiments.append({
-    "name": "FP16_Baseline",
-    "mode": "baseline",
-    "w_bits": 16,
-    "group": 0,
-    "sym": False,
-    "algo": "FP16",
-    "eps": 0.0
-    })
+for bits in [4, 3]:
+    for base_eps in [1e-6, 1e-5, 1e-4, 1e-3]:
+        for group in [128]:
+            sym = True
+            sym_label = "Sym" if sym else "Asym"
+            experiments.append({
+                "name": f"SVD_W{bits}_{sym_label}",
+                "mode": "eigh",
+                "w_bits": bits,
+                "group": group,
+                "sym": sym,
+                "algo": "SVD-quant",
+                "adaptive_eps": False,
+                "eps": base_eps,
+                "batch_size": 32
+                })
 
 for bits in [4, 3, 2]:
-    sym = False
-    group = 128
-    sym_label = "Sym" if sym else "Asym"
-    experiments.append({
-        "name": f"GPTQ_W{bits}_{sym_label}",
-        "mode": "gptq",
-        "w_bits": bits,
-        "group": group,
-        "sym": sym,
-        "algo": "GPTQ",
-        "eps": 0.0,
-        "batch_size": 32
-        })
-
-for bits in [4, 3]:
-    group = 128
-    sym = True
-    sym_label = "Sym" if sym else "Asym"
-    experiments.append({
-        "name": f"GPTQ_W{bits}_{sym_label}",
-        "mode": "gptq",
-        "w_bits": bits,
-        "sym": sym,
-        "algo": "GPTQ",
-        "group": group,
-        "batch_size": 32
-        })
-
-eps_list = [1e-6, 1e-4, 1e-5]
-for bits, eps in zip([4, 3, 2], eps_list):
-    base_eps = eps
-    sym = False
-    group = 128
-    experiments.append({
-        "name": f"Spec_W{bits}_{sym}_Adaptive",
-        "mode": "eigh",
-        "w_bits": bits,
-        "sym": sym,
-        "algo": "Spec-Quant",
-        "group": group,
-        "adaptive_eps": False,
-        "eps": base_eps,
-        "batch_size": 32
-        })
-
-eps_list = [1e-5, 1e-4]
-for bits, eps in zip([4, 3], eps_list):
-    base_eps = eps
-    sym = True
-    group = 128
-    experiments.append({
-        "name": f"Spec_W{bits}_{sym}_Adaptive",
-        "mode": "eigh",
-        "w_bits": bits,
-        "sym": sym,
-        "algo": "Spec-Quant",
-        "group": 128,
-        "adaptive_eps": False,
-        "eps": base_eps,
-        "batch_size": 32
-        })
+    for base_eps in [1e-6, 1e-5, 1e-4]:
+        for group in [128]:
+            sym = False
+            sym_label = "Sym" if sym else "Asym"
+            experiments.append({
+                "name": f"SVD_W{bits}_{sym_label}",
+                "mode": "eigh",
+                "w_bits": bits,
+                "group": group,
+                "sym": sym,
+                "algo": "SVD-quant",
+                "adaptive_eps": False,
+                "eps": base_eps,
+                "batch_size": 32
+                })
 
 
 def run_command(cmd_list):
@@ -110,7 +70,7 @@ def run_command(cmd_list):
 
 
 def main():
-    print("--- Starting Bechmark Run ---")
+    print("--- Starting Batch Experiment Runner ---")
     print(f"Model: {MODEL_ID}")
     print(f"Dataset: {DATASET}")
     print(f"Output Directory: {BASE_SAVE_DIR}")
@@ -129,6 +89,7 @@ def main():
                 f"--dataset {DATASET}",
                 f"--save_path {save_path}",
                 f"--device {DEVICE}",
+                f"--batch_size {exp['batch_size']}",
                 "--threshold_method energy",
                 "--sketch_ratio 1.0",
                 "--no_save"
@@ -139,7 +100,6 @@ def main():
             cmd.append(f"--mode {exp['mode']}")
             cmd.append(f"--w_bits {exp['w_bits']}")
             cmd.append(f"--group_size {exp['group']}")
-            cmd.append(f"--batch_size {exp['batch_size']}")
 
             if exp["mode"] == "eigh":
                 cmd.append(f"--eps {exp['eps']}")
@@ -169,7 +129,7 @@ def main():
         results.append(row)
 
         pd.DataFrame(results).to_csv(BASE_SAVE_DIR / "results_partial.csv", index=False)
-    print("\n\n=== BENCHMARK COMPLETED ===")
+    print("\n\n=== EXPERIMENTS COMPLETED ===")
     df = pd.DataFrame(results)
 
     display_cols = ["algo", "w_bits", "sym", "ppl", "time_s", "status"]
@@ -180,7 +140,7 @@ def main():
 
     print(final_df.to_string(index=False))
 
-    final_path = BASE_SAVE_DIR / "final_benchmark.csv"
+    final_path = BASE_SAVE_DIR / "final_results.csv"
     final_df.to_csv(final_path, index=False)
     print(f"\nSaved to: {final_path}")
 

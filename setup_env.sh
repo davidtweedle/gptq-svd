@@ -2,9 +2,9 @@
 set -e
 echo "=== Creating Conda Environment (gptq-svd) ==="
 
-conda create -n gptq-svd python=3.11 -y
+conda create -n trunc-gptq python=3.11 -y
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate gptq-svd
+conda activate trunc-gptq
 
 echo "=== Installing Magma ==="
 conda install -c conda-forge magma==2.7.2 -y
@@ -38,4 +38,4 @@ unset TOKENIZERS_PARALLELISM
 EOF
 
 echo "SUCCESS"
-echo "Run: conda activate gptq-svd"
+echo "Run: conda activate trunc-gptq"
