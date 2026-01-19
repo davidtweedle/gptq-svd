@@ -15,38 +15,38 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"benchmark_results_{TIMESTAMP}")
 experiments = []
 
-#experiments.append({
-#    "name": "FP16_Baseline",
-#    "mode": "baseline",
-#    "w_bits": 16,
-#    "group": 0,
-#    "sym": False,
-#    "algo": "FP16",
-#    "eps": 0.0
-#    })
-#
-#for bits in [4, 3, 2]:
-#    experiments.append({
-#        "name": f"GPTQ_W{bits}_Asym",
-#        "mode": "gptq",
-#        "w_bits": bits,
-#        "group": 128,
+experiments.append({
+    "name": "FP16_Baseline",
+    "mode": "baseline",
+    "w_bits": 16,
+    "group": 0,
+    "sym": False,
+    "algo": "FP16",
+    "eps": 0.0
+    })
+
+for bits in [4, 3, 2]:
+    experiments.append({
+        "name": f"GPTQ_W{bits}_Asym",
+        "mode": "gptq",
+        "w_bits": bits,
+        "group": 128,
 #        "sym": False,
-#        "algo": "GPTQ",
-#        "eps": 0.0,
-#        "batch_size": 32
-#        })
-#
-#for bits in [4, 3]:
-#    experiments.append({
-#        "name": f"GPTQ_W{bits}_Sym",
-#        "mode": "gptq",
-#        "w_bits": bits,
-#        "sym": True,
-#        "algo": "GPTQ",
-#        "group": 128,
-#        "batch_size": 32
-#        })
+        "algo": "GPTQ",
+        "eps": 0.0,
+        "batch_size": 32
+        })
+
+for bits in [4, 3]:
+    experiments.append({
+        "name": f"GPTQ_W{bits}_Sym",
+        "mode": "gptq",
+        "w_bits": bits,
+        "sym": True,
+        "algo": "GPTQ",
+        "group": 128,
+        "batch_size": 32
+        })
 
 eps_list = [1e-6, 1e-4, 1e-5]
 for bits, eps in zip([4, 3, 2], eps_list):
