@@ -213,7 +213,7 @@ def main():
                             H_inv_sqrt=shared_stats["R"],
                             quantizer=quantizer,
                             perm=shared_stats["perm"],
-                            block_size=128,
+                            block_size=1024,
                             R_x=shared_stats.get("R_x")
                             )
                 elif args.mode == "gptq":
@@ -221,7 +221,7 @@ def main():
                             weight_mat=W,
                             H_inv_sqrt=shared_stats["R"],
                             quantizer=quantizer,
-                            block_size=128,
+                            block_size=1024,
                             perm=shared_stats["perm"]
                             )
                 elif args.mode == "test":
