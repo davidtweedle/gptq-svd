@@ -351,14 +351,14 @@ def gptq_fwrd(
             Q1[:, i] = q_dequant
 
             err1 = (w - q_dequant) / d
-            delta = err1.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
+            delta = err1.to(Hinv1.dtype).unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
             W1[:, i:] -= delta.to(dtype=torch.float32)
             Err1[:, i] = err1.to(dtype=torch.float32)
         Q_final[:, i1:i2] = Q1
 
         if i2 < in_features:
-            block_update = Err1.matmul(H_inv_sqrt[i1:i2, i2:].to(dtype=torch.float32))
-            W[:, i2:] -= block_update
+            block_update = Err1.to(H_inv_sqrt.dtype).matmul(H_inv_sqrt[i1:i2, i2:])
+            W[:, i2:] -= block_update.to(dtype=torch.float32)
 
     if current_rank < in_features:
         W_tail = W[:, current_rank:]
