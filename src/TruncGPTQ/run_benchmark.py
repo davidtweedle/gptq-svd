@@ -31,7 +31,7 @@ for bits in [4, 3, 2]:
         "mode": "gptq",
         "w_bits": bits,
         "group": 128,
-#        "sym": False,
+        "sym": False,
         "algo": "GPTQ",
         "eps": 0.0,
         "batch_size": 32
