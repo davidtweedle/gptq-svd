@@ -122,20 +122,13 @@ python TruncGPTQ/src/TruncGPTQ/run_benchmark.py
 * Computational Cost: The quantization process uses Eigendecomposition (torch.eigh), once, one QR with pivoting, and one regular QR, as opposed to two Cholesky factorizations for GPTQ. This makes it about 1.5X slower than regular GPTQ. This has zero impact on inference speed.
 
 ## Roadmap: Future developments
-
-[ ] Support for saving quantized weights (compatible with AutoGPTQ/vLLM)
-
-[ ] Support Mixture of Experts models
-
-[ ] Support Llama 3, Mistral, Mixtral
-
-[ ] Layer-wise adaptive truncation (auto-tune epsilon)
-
-[ ] Integration with other libraries (e.g., QUIP\#, etc.)
-
-[ ] Apply Streaming QR or Randomized Linear Algebra to accumulation of Hessian
-
-[ ] Ablation study
+- [ ] Support for saving quantized weights (compatible with AutoGPTQ/vLLM)
+- [ ] Support Mixture of Experts models
+- [ ] Support Llama 3, Mistral, Mixtral
+- [ ] Layer-wise adaptive truncation (auto-tune epsilon)
+- [ ] Integration with other libraries (e.g., QUIP\#, etc.)
+- [ ] Apply Streaming QR or Randomized Linear Algebra to accumulation of Hessian
+- [ ] Ablation study
 
 ## Citation
 ```bibtex
