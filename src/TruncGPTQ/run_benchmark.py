@@ -128,7 +128,7 @@ def main():
 
             if exp["mode"] == "eigh":
                 cmd.extend(["--eps", str(exp['eps'])])
-                if exp.get(["adaptive_eps"], False):
+                if exp.get("adaptive_eps", False):
                     cmd.append("--adaptive_eps")
             if exp.get("sym", False):
                 cmd.append("--sym")
