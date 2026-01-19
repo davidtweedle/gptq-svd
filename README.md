@@ -84,7 +84,7 @@ $$ H = V\Lambda V^T $$
 
 $$ S = \tilde{\Lambda}^{1/2} V^T. $$
 
-*Note that $S^TS \cong H$.*
+*Note that* $S^TS \cong H$.
 
 4. **Rank-revealing ordering:** We apply pivoted QR to $S$: 
 
