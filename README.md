@@ -62,6 +62,7 @@ Indeed, the insight of GPTQ is that if we can write $H^{-1} = U^TU$ where $U$ is
 $$ H' = X^TX + \lambda I $$
 
 Problem: This adds noise to every feature, diluting the correlation structure.
+
 2. **ActOrder:** We may reorder the activations to better represent the important activations. In GPTQ, this is done by sorting according to the norms of the activations (the diagonal of $H$).
 3. **Cholesky Factorization:** Compute $H' = R^TR$ where $R$ is upper-triangular.
 4. **Inversion:** Compute $H^{-1} = R^{-1}R^{-T}$.
