@@ -4,7 +4,7 @@
 
 **TruncGPTQ** is a numerically stable quantization framework for Large Language Models. It replaces the Cholesky-based solver in GPTQ with a truncated spectral approach that robustly handles rank-deficiency. By preserving the true signal structure of the Hessian, $H = X^TX$, TruncGPTQ avoids the need for the damping ($+\lambda I$) required by standard GPTQ.
 
-TruncGPTQ is a drop-in replacement for the "Hessian Inverse" step of GPTQ, requiring no new inference kernels. On Qwen3-8B, we see up to a 75% reduction in perplexity degradation compared to the FP16 baseline (symmetric quantization to 4-bit).
+TruncGPTQ is a drop-in replacement for the "Hessian Inverse" step of GPTQ, requiring no new inference kernels. On Qwen3-8B, TruncGPTQ reduces the perplexity degradation of standard GPTQ by up to 75% (relative to the FP16 baseline).
 
 ## Key Contributions
 
