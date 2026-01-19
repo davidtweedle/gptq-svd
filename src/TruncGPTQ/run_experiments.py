@@ -12,7 +12,7 @@ DATASET = "wikitext2"
 DEVICE = "cuda:0"
 
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
-BASE_SAVE_DIR = Path(f"benchmark_results_{TIMESTAMP}")
+BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
 for bits in [4, 3]:
