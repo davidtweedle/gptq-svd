@@ -75,6 +75,15 @@ def main():
         model = model.to(args.device)
         ppl_baseline = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
         logging.info(f"Baseline PPL: {ppl_baseline:.2f}")
+
+        experiment_log["metrics"]["baseline_ppl"] = ppl_baseline
+        
+        os.makedirs(args.save_path, exist_ok=True)
+        log_file = os.path.join(args.save_path, "results.json")
+        with open(log_file, "w") as f:
+            json.dump(experiment_log, f, indent=4)
+
+        logging.info(f"Baseline results saved to {log_file}")
         return
 
     log_substep(f"Loading dataset: {args.dataset}")

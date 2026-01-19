@@ -309,9 +309,10 @@ def gptq_fwrd(
 
     out_features, in_features = weight_mat.shape
     device = weight_mat.device
-    dtype = weight_mat.dtype
+    orig_dtype = weight_mat.dtype
+    weight_mat = weight_mat.to(device=device, dtype=torch.float32)
 
-    H_inv_sqrt = H_inv_sqrt.to(device=device, dtype=dtype)
+    H_inv_sqrt = H_inv_sqrt.to(device=device)
 
     current_rank = H_inv_sqrt.shape[0]
 
@@ -322,8 +323,8 @@ def gptq_fwrd(
     quantizer.find_params(weight_mat)
     S_full, Z_full = quantizer.get_expanded_params(out_features, in_features)
     W = weight_mat[:, perm].clone()
-    S = S_full[:, perm].clone()
-    Z = Z_full[:, perm].clone()
+    S = S_full[:, perm].to(device=device, dtype=torch.float32).clone()
+    Z = Z_full[:, perm].to(device=device, dtype=torch.float32).clone()
 
     Q_final = torch.zeros_like(W)
 
@@ -350,12 +351,14 @@ def gptq_fwrd(
             Q1[:, i] = q_dequant
 
             err1 = (w - q_dequant) / d
-            W1[:, i:] -= err1.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
-            Err1[:, i] = err1
+            delta = err1.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
+            W1[:, i:] -= delta.to(dtype=torch.float32)
+            Err1[:, i] = err1.to(dtype=torch.float32)
         Q_final[:, i1:i2] = Q1
 
         if i2 < in_features:
-            W[:, i2:] -= Err1.matmul(H_inv_sqrt[i1:i2, i2:])
+            block_update = Err1.matmul(H_inv_sqrt[i1:i2, i2:].to(dtype=torch.float32))
+            W[:, i2:] -= block_update
 
     if current_rank < in_features:
         W_tail = W[:, current_rank:]
