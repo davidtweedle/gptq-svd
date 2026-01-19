@@ -112,7 +112,7 @@ def main():
                 PYTHON_INTERPRETER, SCRIPT_PATH,
                 "--model_id", MODEL_ID,
                 "--dataset", DATASET,
-                "--save_path", save_path,
+                "--save_path", str(save_path),
                 "--device", DEVICE,
                 "--threshold_method", "energy",
                 "--sketch_ratio", "1.0",
