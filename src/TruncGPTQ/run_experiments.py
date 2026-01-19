@@ -16,7 +16,7 @@ BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
 for bits in [4, 3]:
-    for eps in [1e-6, 1e-5, 1e-4, 1e-3]:
+    for eps in [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2]:
         experiments.append({
             "name": f"Trunc_W{bits}_Sym_{eps}",
             "mode": "eigh",
@@ -30,7 +30,7 @@ for bits in [4, 3]:
             })
 
 for bits in [4, 3, 2]:
-    for eps in [1e-6, 1e-5, 1e-4, 1e-3]:
+    for eps in [1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2]:
         experiments.append({
             "name": f"Trunc_W{bits}_Asym_{eps}",
             "mode": "eigh",
