@@ -3,7 +3,6 @@ import json
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
-import sys
 
 # --- Configuration ---
 PYTHON_INTERPRETER = "python"
@@ -27,75 +26,61 @@ experiments.append({
     })
 
 for bits in [4, 3, 2]:
-    sym = False
-    group = 128
-    sym_label = "Sym" if sym else "Asym"
     experiments.append({
-        "name": f"GPTQ_W{bits}_{sym_label}",
+        "name": f"GPTQ_W{bits}_Asym",
         "mode": "gptq",
         "w_bits": bits,
-        "group": group,
-        "sym": sym,
+        "group": 128,
+        "sym": False,
         "algo": "GPTQ",
         "eps": 0.0,
         "batch_size": 32
         })
 
 for bits in [4, 3]:
-    group = 128
-    sym = True
-    sym_label = "Sym" if sym else "Asym"
     experiments.append({
-        "name": f"GPTQ_W{bits}_{sym_label}",
+        "name": f"GPTQ_W{bits}_Sym",
         "mode": "gptq",
         "w_bits": bits,
-        "sym": sym,
+        "sym": True,
         "algo": "GPTQ",
-        "group": group,
+        "group": 128,
         "batch_size": 32
         })
 
 eps_list = [1e-6, 1e-4, 1e-5]
 for bits, eps in zip([4, 3, 2], eps_list):
-    base_eps = eps
-    sym = False
-    group = 128
     experiments.append({
-        "name": f"Trunc_W{bits}_{sym}",
+        "name": f"Trunc_W{bits}_Asym",
         "mode": "eigh",
         "w_bits": bits,
-        "sym": sym,
+        "sym": False,
         "algo": "TruncGPTQ",
-        "group": group,
+        "group": 128,
         "adaptive_eps": False,
-        "eps": base_eps,
+        "eps": eps,
         "batch_size": 32
         })
 
 eps_list = [1e-4, 1e-4]
 for bits, eps in zip([4, 3], eps_list):
-    base_eps = eps
-    sym = True
-    group = 128
     experiments.append({
-        "name": f"Trunc_W{bits}_{sym}",
+        "name": f"Trunc_W{bits}_Sym",
         "mode": "eigh",
         "w_bits": bits,
-        "sym": sym,
+        "sym": True,
         "algo": "TruncGPTQ",
         "group": 128,
         "adaptive_eps": False,
-        "eps": base_eps,
+        "eps": eps,
         "batch_size": 32
         })
 
 
 def run_command(cmd_list):
-    cmd_str = " ".join(cmd_list)
-    print(f"\n[EXEC] {cmd_str}")
+    print(f"\n[EXEC] {' '.join(cmd_list)}")
     with subprocess.Popen(
-            cmd_str,
-            shell=True,
+            cmd_list,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -125,27 +110,27 @@ def main():
         save_path.mkdir(exist_ok=True)
         cmd = [
                 PYTHON_INTERPRETER, SCRIPT_PATH,
-                f"--model_id {MODEL_ID}",
-                f"--dataset {DATASET}",
-                f"--save_path {save_path}",
-                f"--device {DEVICE}",
-                "--threshold_method energy",
-                "--sketch_ratio 1.0",
+                "--model_id", MODEL_ID,
+                "--dataset", DATASET,
+                "--save_path", save_path,
+                "--device", DEVICE,
+                "--threshold_method", "energy",
+                "--sketch_ratio", "1.0",
                 "--no_save"
                 ]
         if exp["mode"] == "baseline":
-            cmd.append("--mode baseline")
+            cmd.extend(["--mode", "baseline"])
         else:
-            cmd.append(f"--mode {exp['mode']}")
-            cmd.append(f"--w_bits {exp['w_bits']}")
-            cmd.append(f"--group_size {exp['group']}")
-            cmd.append(f"--batch_size {exp['batch_size']}")
+            cmd.extend(["--mode", exp["mode"]])
+            cmd.extend(["--w_bits", str(exp['w_bits'])])
+            cmd.extend(["--group_size", str(exp['group'])])
+            cmd.extend(["--batch_size", str(exp['batch_size'])])
 
             if exp["mode"] == "eigh":
-                cmd.append(f"--eps {exp['eps']}")
-                if exp["adaptive_eps"]:
+                cmd.extend(["--eps", str(exp['eps'])])
+                if exp.get(["adaptive_eps"], False):
                     cmd.append("--adaptive_eps")
-            if exp["sym"]:
+            if exp.get("sym", False):
                 cmd.append("--sym")
         start_t = datetime.now()
         success = run_command(cmd)
@@ -162,7 +147,12 @@ def main():
                 with open(result_file, "r") as f:
                     data = json.load(f)
                     metrics = data.get("metrics", {})
-                    row["ppl"] = metrics.get("quantized_ppl", "N/A")
+
+                    q_ppl = metrics.get("quantized_ppl")
+                    b_ppl = metrics.get("baseline_ppl")
+                    final_ppl = q_ppl if q_ppl is not None else b_ppl
+                    if isinstance(final_ppl, (int, float)):
+                        row["ppl"] = round(final_ppl, 4)
                     print(f"--> Captured PPL: {row['ppl']}")
             except Exception as e:
                 row["status"] = f"JSON Error: {e}"
@@ -172,13 +162,10 @@ def main():
     print("\n\n=== BENCHMARK COMPLETED ===")
     df = pd.DataFrame(results)
 
-    display_cols = ["algo", "w_bits", "sym", "ppl", "time_s", "status"]
-    if set(display_cols).issubset(df.columns):
-        final_df = df[display_cols]
-    else:
-        final_df = df
-
-    print(final_df.to_string(index=False))
+    display_cols = ["algo", "w_bits", "group", "sym", "eps", "ppl", "time_s", "status"]
+    existing_display_cols = [c for c in display_cols if c in df.columns]
+    final_df = df[existing_display_cols]
+    print(final_df.to_string(index=False, justify='center'))
 
     final_path = BASE_SAVE_DIR / "final_benchmark.csv"
     final_df.to_csv(final_path, index=False)
