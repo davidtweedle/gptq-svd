@@ -124,11 +124,17 @@ python TruncGPTQ/src/TruncGPTQ/run_benchmark.py
 ## Roadmap: Future developments
 
 [ ] Support for saving quantized weights (compatible with AutoGPTQ/vLLM)
+
 [ ] Support Mixture of Experts models
+
 [ ] Support Llama 3, Mistral, Mixtral
+
 [ ] Layer-wise adaptive truncation (auto-tune epsilon)
+
 [ ] Integration with other libraries (e.g., QUIP\#, etc.)
+
 [ ] Apply Streaming QR or Randomized Linear Algebra to accumulation of Hessian
+
 [ ] Ablation study
 
 ## Citation
