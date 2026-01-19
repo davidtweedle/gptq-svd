@@ -2,7 +2,9 @@
 
 [License](LICENSE)
 
-**TruncGPTQ** is a numerically stable quantization framework for Large Language Models. It replaces the Cholesky-based solver in GPTQ with a truncated spectral approach that explicitly handles rank-deficiency. By explicitly handling rank-deficiency in the Hessian $H = X^TX$ where $X$ are the activations, TruncGPTQ preserves signal integrity where standard GPTQ injects noise. TruncGPTQ is a drop-in replacement for the ``Hessian Inverse'' step of GPTQ, and no new kernels are required.
+**TruncGPTQ** is a numerically stable quantization framework for Large Language Models. It replaces the Cholesky-based solver in GPTQ with a truncated spectral approach that robustly handles rank-deficiency. By preserving the true signal structure of the Hessian, $H = X^TX$, TruncGPTQ avoids the need for the damping ($+\lambda I$) required by standard GPTQ.
+
+TruncGPTQ is a drop-in replacement for the "Hessian Inverse" step of GPTQ, requiring no new inference kernels. On Qwen3-8B, we see up to a 75% reduction in perplexity degradation compared to the FP16 baseline (symmetric quantization to 4-bit).
 
 ## Key Contributions
 
@@ -18,7 +20,7 @@
 
 3. Rank-revealing ordering
 * Replaces activation ordering by norm (ActOrder) by Pivoted QR (a rank-revealing factorization)
-* Columns are ordered according to their statistical contribution to the Hessian.
+* Columns are ordered by conditional variance, prioritizing features that contribute the most unique information to the Hessian structure while deferring redundant (correlated) features.
 
 ## Benchmark Results (WikiText-2 test set Perplexity)
 *Evaluation performed on **Qwen3-8B**. Lower is better.*
@@ -46,29 +48,51 @@
 | **Stability Strategy** | Damping ($H + \lambda I$) | Hard Truncation |
 | **Numerics** | Adds noise to all features | Preserves signal, ignores noise |
 | **Column Selection** | Actorder (norm-based) | Pivoted QR (Rank-based) |
-| **Quantization time** | Fast | 1.5x Slower |
 
 ## Why TruncGPTQ?
-Recall that GPTQ (and originally OBS and OBQ) aim to quantize the weights in a way which minimizes the difference $(\hat{W} - W) X)$, for the sample inputs $X$. The approach of GPTQ is to compute $H = X^TX$ and then write
-$$ H^{-1} = \Rho^T \Rho $$
-where $\Rho$ is upper-triangular and has positive diagonal. The matrix $\Rho$ can be used to quantize each column of $W$ in order propogate the error of the quantization to the remaining (unquantized) columns.
+Recall that GPTQ (and originally OBS and OBQ) aim to quantize the weights while minimizing the error in the output activations.
+This is an optimization problem involving the inverse of the Hessian, $H^{-1}$, where $H = X^TX$.
 
-Here is how GPTQ works.
+Indeed, the insight of GPTQ is that if we can write $H^{-1} = U^TU$ where $U$ is upper-triangular, we can quantize each column and propagate the error to the unquantized columns in a computationally tractable manner (compared to OBS/OBQ).
 
-1. $H = X^TX + \lambda I$
-2. We may reorder the activations to better represent the important activations. In GPTQ, this is done by sorting according to the norms of the activations (the diagonal of $H$).
-3. Write $H = R^TR$ where $R$ is upper-triangular and has positive diagonal elements. GPTQ uses Cholesky factorization (which is the justification for adding $\lambda I$ in step 1 - if you don't Cholesky may fail to find a factorization)
-4. Compute $H^{-1}$ from $R$ using triangular solve
-5. Compute $H^{-1} = \Rho^T\Rho$ again using Cholesky factorization, where $\Rho$ is upper-triangular and has positive elements on the diagonal.
-6. $\Rho$ serves as the input to the quantization step, in which each column is quantized, and the errors are propogated to the unquantized columns.
 
-Here is how TruncGPTQ works.
-1. **Hessian calculation:** $H = X^TX$ (no damping)
-2. **Spectral Decomposition:** $H = Q\Lambda Q^T$ (spectral decomposition), $\Lambda$ is diagonal, $Q$ is orthogonal
-3. **Truncation:** Set $\lambda_i = 0$ for all eigenvalues below a threshold.
-4. **Square Root Representation:** Set $S = Lambda^{1/2}Q^T$. Note that $S^TS = H$.
-5. **Rank-revealing ordering:** Perform pivoted QR on $S$: $SP = Q'R$ where $P$ is a permutation matrix.
-6. **Inverse Factorization:** Compute the pseudoinverse of the truncated Hessian to derive the error-propogation matrix $\Rho$.
+### The Standard Approach: GPTQ
+1. **Damping:** Since $H$ is often rank-deficient or ill-conditioned, GPTQ forces it to be positive definite by adding a damping factor $\lambda$:
+
+$$ H' = X^TX + \lambda I $$
+
+Problem: This adds noise to every feature, diluting the correlation structure.
+2. **ActOrder:** We may reorder the activations to better represent the important activations. In GPTQ, this is done by sorting according to the norms of the activations (the diagonal of $H$).
+3. **Cholesky Factorization:** Compute $H' = R^TR$ where $R$ is upper-triangular.
+4. **Inversion:** Compute $H^{-1} = R^{-1}R^{-T}$.
+5. **Re-Factorization:** Compute the Cholesky factorization of the inverse to find the error propagation matrix $U$:
+
+$$ H^{-1} = U^TU. $$
+
+**Note:** If $H$ is indefinite, Cholesky fails. If $\lambda$ is too large, the data is corrupted.
+
+### The Spectral Approach: TruncGPTQ
+The aim of TruncGPTQ is to identify the true rank of $H$ and discard the noise.
+
+1. **Hessian Factorization:** We decompose the raw Hessian (no damping) 
+
+$$ H = V\Lambda V^T $$
+
+2. **Truncation:** Set $\lambda_i = 0$ for all eigenvalues below a threshold. This creates a cleaned diagonal $\tilde{\Lambda}$.
+3. **Square Root Representation:** We construct a matrix $S$ that represents the square root of the cleaned Hessian:
+
+$$ S = \tilde{\Lambda}^{1/2} V^T. $$
+
+*Note that $S^TS \cong H$.*
+
+4. **Rank-revealing ordering:** We apply pivoted QR to $S$: 
+
+$$SP^T = QR, $$
+where $P$ is a permutation matrix, $Q$ is orthogonal, and $R$ is upper triangular.
+
+This greedily selects columns with the largest projection onto the orthogonal complement of the previously selected columns. This orders features by their conditional variance - prioritizing those that add the most new information and pushing highly correlated features to the end.
+
+5. **Direct Solution:** The error propagation matrix $U$ is derived directly from the pseudoinverse of $R$.
 
 ## Installation & Environment Setup
 
@@ -96,14 +120,13 @@ python TruncGPTQ/src/TruncGPTQ/run_benchmark.py
 * Computational Cost: The quantization process uses Eigendecomposition (torch.eigh), once, one QR with pivoting, and one regular QR, as opposed to two Cholesky factorizations for GPTQ. This makes it about 1.5X slower than regular GPTQ. This has zero impact on inference speed.
 
 ## Roadmap: Future developments
-[ ] Streaming QR (perhaps the most numerically stable option)
-[ ] Larger models
-[ ] Support for MOE
-[ ] Variety of models (Llama, Mixtral, etc.)
-[ ] Tuning of truncation for individual layers
-[ ] QUIP\# integration
-[ ] Randomized Linear Algebra
-[ ] Proper ablation study
+[ ] Support for saving quantized weights (compatible with AutoGPTQ/vLLM)
+[ ] Support Mixture of Experts models
+[ ] Support Llama 3, Mistral, Mixtral
+[ ] Layer-wise adaptive truncation (auto-tune epsilon)
+[ ] Integration with other libraries (e.g., QUIP\#, etc.)
+[ ] Apply Streaming QR or Randomized Linear Algebra to accumulation of Hessian
+[ ] Ablation study
 
 ## Citation
 ```bibtex
