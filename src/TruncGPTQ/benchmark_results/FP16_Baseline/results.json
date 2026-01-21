@@ -1,0 +1,27 @@
+{
+    "config": {
+        "model_id": "Qwen/Qwen3-8B",
+        "device": "cuda:0",
+        "seed": 42,
+        "dataset": "wikitext2",
+        "n_samples": 128,
+        "seq_len": 2048,
+        "batch_size": 8,
+        "w_bits": 4,
+        "group_size": -1,
+        "sym": false,
+        "eps": 0.01,
+        "sketch_ratio": 1.0,
+        "mode": "baseline",
+        "threshold_method": "energy",
+        "actorder": false,
+        "damp_percent": 0.01,
+        "adaptive_eps": false,
+        "save_path": "benchmark_results_20260120_023412/FP16_Baseline",
+        "no_save": true
+    },
+    "layer_stats": [],
+    "metrics": {
+        "baseline_ppl": 8.572286605834961
+    }
+}

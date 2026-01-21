@@ -1,0 +1,13 @@
+[02:34:16] INFO: 
+==================== INITIALIZING QUANTIZATION ====================
+[02:34:16] INFO: Model:  Qwen/Qwen3-8B
+[02:34:16] INFO: Mode:   BASELINE
+[02:34:16] INFO: Params: Bits=4, Group=-1, Eps=0.01
+[02:34:17] INFO: Loading Qwen/Qwen3-8B...
+[02:34:17] INFO: [MODEL] Using Flash attention 2
+[02:34:24] INFO: 
+==================== BASELINE EVALUATION ====================
+[02:34:28] INFO:   [eval] Loading wikitext2...
+[02:34:30] INFO:   [eval] Dataset tokens: 299078 | Window: 2048 | Stride: 512
+[02:36:40] INFO: Baseline PPL: 8.57
+[02:36:40] INFO: Baseline results saved to benchmark_results_20260120_023412/FP16_Baseline/results.json

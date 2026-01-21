@@ -1,0 +1,959 @@
+[05:50:02] INFO: 
+==================== INITIALIZING QUANTIZATION ====================
+[05:50:02] INFO: Model:  Qwen/Qwen3-8B
+[05:50:02] INFO: Mode:   EIGH
+[05:50:02] INFO: Params: Bits=3, Group=128, Eps=0.0001
+[05:50:03] INFO: Loading Qwen/Qwen3-8B...
+[05:50:03] INFO: [MODEL] Using Flash attention 2
+[05:50:10] INFO:   [>] Loading dataset: wikitext2
+[05:50:10] INFO: Loading wikitext2... (total samples: 128)
+[05:50:23] INFO: [DATA] Full dataset tokens: 2518423
+[05:50:23] INFO: [DATA] Collected 128 random batches of length 2048.
+[05:50:23] INFO:   [>] Capturing initial activations...
+[05:50:23] INFO: Capturing calibration inputs...
+[05:50:24] INFO: 
+==================== PIPELINE: EIGH ====================
+[05:50:24] INFO: [Layer 1/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:50:27] INFO:    Rank percent used: 98.95%
+[05:50:29] INFO:    [Metric] Relative prediction error: 0.050146
+[05:50:29] INFO:    self_attn.q_proj | Rank: 4053 | Time: 1.94s
+[05:50:29] INFO:    Rank percent used: 98.95%
+[05:50:30] INFO:    [Metric] Relative prediction error: 0.044763
+[05:50:30] INFO:    self_attn.k_proj | Rank: 4053 | Time: 0.90s
+[05:50:30] INFO:    Rank percent used: 98.95%
+[05:50:31] INFO:    [Metric] Relative prediction error: 0.102195
+[05:50:31] INFO:    self_attn.v_proj | Rank: 4053 | Time: 0.89s
+[05:50:32] INFO: [Layer 1/36] Group 2: self_attn.o_proj
+[05:50:34] INFO:    Rank percent used: 98.10%
+[05:50:36] INFO:    [Metric] Relative prediction error: 0.059502
+[05:50:36] INFO:    self_attn.o_proj | Rank: 4018 | Time: 1.64s
+[05:50:36] INFO: [Layer 1/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:50:39] INFO:    Rank percent used: 98.02%
+[05:50:41] INFO:    [Metric] Relative prediction error: 0.090857
+[05:50:41] INFO:    mlp.gate_proj   | Rank: 4015 | Time: 2.72s
+[05:50:42] INFO:    Rank percent used: 98.02%
+[05:50:44] INFO:    [Metric] Relative prediction error: 0.100539
+[05:50:44] INFO:    mlp.up_proj     | Rank: 4015 | Time: 2.72s
+[05:50:45] INFO: [Layer 1/36] Group 4: mlp.down_proj
+[05:51:00] INFO:    Rank percent used: 99.51%
+[05:51:06] INFO:    [Metric] Relative prediction error: 0.115281
+[05:51:06] INFO:    mlp.down_proj   | Rank: 12228 | Time: 5.31s
+[05:51:07] INFO: [*] Layer 1/36 completed in 43.30s
+[05:51:08] INFO: [Layer 2/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:51:10] INFO:    Rank percent used: 96.68%
+[05:51:12] INFO:    [Metric] Relative prediction error: 0.039242
+[05:51:12] INFO:    self_attn.q_proj | Rank: 3960 | Time: 1.64s
+[05:51:12] INFO:    Rank percent used: 96.68%
+[05:51:13] INFO:    [Metric] Relative prediction error: 0.037523
+[05:51:13] INFO:    self_attn.k_proj | Rank: 3960 | Time: 0.91s
+[05:51:13] INFO:    Rank percent used: 96.68%
+[05:51:14] INFO:    [Metric] Relative prediction error: 0.085043
+[05:51:14] INFO:    self_attn.v_proj | Rank: 3960 | Time: 0.89s
+[05:51:14] INFO: [Layer 2/36] Group 2: self_attn.o_proj
+[05:51:17] INFO:    Rank percent used: 97.97%
+[05:51:18] INFO:    [Metric] Relative prediction error: 0.108031
+[05:51:18] INFO:    self_attn.o_proj | Rank: 4013 | Time: 1.64s
+[05:51:19] INFO: [Layer 2/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:51:21] INFO:    Rank percent used: 94.60%
+[05:51:24] INFO:    [Metric] Relative prediction error: 0.007854
+[05:51:24] INFO:    mlp.gate_proj   | Rank: 3875 | Time: 2.72s
+[05:51:24] INFO:    Rank percent used: 94.60%
+[05:51:27] INFO:    [Metric] Relative prediction error: 0.073294
+[05:51:27] INFO:    mlp.up_proj     | Rank: 3875 | Time: 2.72s
+[05:51:27] INFO: [Layer 2/36] Group 4: mlp.down_proj
+[05:51:39] INFO:    Rank percent used: 42.04%
+[05:51:41] INFO:    [Metric] Relative prediction error: 0.175586
+[05:51:41] INFO:    mlp.down_proj   | Rank: 5166 | Time: 2.27s
+[05:51:42] INFO: [*] Layer 2/36 completed in 35.03s
+[05:51:43] INFO: [Layer 3/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:51:45] INFO:    Rank percent used: 99.10%
+[05:51:47] INFO:    [Metric] Relative prediction error: 0.065167
+[05:51:47] INFO:    self_attn.q_proj | Rank: 4059 | Time: 1.64s
+[05:51:47] INFO:    Rank percent used: 99.10%
+[05:51:48] INFO:    [Metric] Relative prediction error: 0.065548
+[05:51:48] INFO:    self_attn.k_proj | Rank: 4059 | Time: 0.90s
+[05:51:48] INFO:    Rank percent used: 99.10%
+[05:51:49] INFO:    [Metric] Relative prediction error: 0.112798
+[05:51:49] INFO:    self_attn.v_proj | Rank: 4059 | Time: 0.89s
+[05:51:49] INFO: [Layer 3/36] Group 2: self_attn.o_proj
+[05:51:52] INFO:    Rank percent used: 97.75%
+[05:51:54] INFO:    [Metric] Relative prediction error: 0.118839
+[05:51:54] INFO:    self_attn.o_proj | Rank: 4004 | Time: 1.64s
+[05:51:54] INFO: [Layer 3/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:51:56] INFO:    Rank percent used: 96.12%
+[05:51:59] INFO:    [Metric] Relative prediction error: 0.006887
+[05:51:59] INFO:    mlp.gate_proj   | Rank: 3937 | Time: 2.72s
+[05:51:59] INFO:    Rank percent used: 96.12%
+[05:52:02] INFO:    [Metric] Relative prediction error: 0.010564
+[05:52:02] INFO:    mlp.up_proj     | Rank: 3937 | Time: 2.73s
+[05:52:02] INFO: [Layer 3/36] Group 4: mlp.down_proj
+[05:52:13] INFO:    Rank percent used: 38.05%
+[05:52:16] INFO:    [Metric] Relative prediction error: 0.169802
+[05:52:16] INFO:    mlp.down_proj   | Rank: 4675 | Time: 2.14s
+[05:52:17] INFO: [*] Layer 3/36 completed in 34.40s
+[05:52:17] INFO: [Layer 4/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:52:20] INFO:    Rank percent used: 99.12%
+[05:52:22] INFO:    [Metric] Relative prediction error: 0.055188
+[05:52:22] INFO:    self_attn.q_proj | Rank: 4060 | Time: 1.64s
+[05:52:22] INFO:    Rank percent used: 99.12%
+[05:52:23] INFO:    [Metric] Relative prediction error: 0.055952
+[05:52:23] INFO:    self_attn.k_proj | Rank: 4060 | Time: 0.92s
+[05:52:23] INFO:    Rank percent used: 99.12%
+[05:52:24] INFO:    [Metric] Relative prediction error: 0.112549
+[05:52:24] INFO:    self_attn.v_proj | Rank: 4060 | Time: 0.90s
+[05:52:24] INFO: [Layer 4/36] Group 2: self_attn.o_proj
+[05:52:27] INFO:    Rank percent used: 98.17%
+[05:52:28] INFO:    [Metric] Relative prediction error: 0.115617
+[05:52:28] INFO:    self_attn.o_proj | Rank: 4021 | Time: 1.64s
+[05:52:29] INFO: [Layer 4/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:52:31] INFO:    Rank percent used: 97.36%
+[05:52:34] INFO:    [Metric] Relative prediction error: 0.011059
+[05:52:34] INFO:    mlp.gate_proj   | Rank: 3988 | Time: 2.72s
+[05:52:34] INFO:    Rank percent used: 97.36%
+[05:52:37] INFO:    [Metric] Relative prediction error: 0.092061
+[05:52:37] INFO:    mlp.up_proj     | Rank: 3988 | Time: 2.72s
+[05:52:37] INFO: [Layer 4/36] Group 4: mlp.down_proj
+[05:52:49] INFO:    Rank percent used: 56.11%
+[05:52:52] INFO:    [Metric] Relative prediction error: 0.198748
+[05:52:52] INFO:    mlp.down_proj   | Rank: 6895 | Time: 3.05s
+[05:52:54] INFO: [*] Layer 4/36 completed in 36.54s
+[05:52:54] INFO: [Layer 5/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:52:57] INFO:    Rank percent used: 99.37%
+[05:52:58] INFO:    [Metric] Relative prediction error: 0.075486
+[05:52:58] INFO:    self_attn.q_proj | Rank: 4070 | Time: 1.64s
+[05:52:58] INFO:    Rank percent used: 99.37%
+[05:52:59] INFO:    [Metric] Relative prediction error: 0.079961
+[05:52:59] INFO:    self_attn.k_proj | Rank: 4070 | Time: 0.91s
+[05:53:00] INFO:    Rank percent used: 99.37%
+[05:53:00] INFO:    [Metric] Relative prediction error: 0.135192
+[05:53:00] INFO:    self_attn.v_proj | Rank: 4070 | Time: 0.90s
+[05:53:01] INFO: [Layer 5/36] Group 2: self_attn.o_proj
+[05:53:03] INFO:    Rank percent used: 99.00%
+[05:53:05] INFO:    [Metric] Relative prediction error: 0.137982
+[05:53:05] INFO:    self_attn.o_proj | Rank: 4055 | Time: 1.64s
+[05:53:05] INFO: [Layer 5/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:53:08] INFO:    Rank percent used: 98.19%
+[05:53:11] INFO:    [Metric] Relative prediction error: 0.018707
+[05:53:11] INFO:    mlp.gate_proj   | Rank: 4022 | Time: 2.72s
+[05:53:11] INFO:    Rank percent used: 98.19%
+[05:53:13] INFO:    [Metric] Relative prediction error: 0.130096
+[05:53:13] INFO:    mlp.up_proj     | Rank: 4022 | Time: 2.72s
+[05:53:14] INFO: [Layer 5/36] Group 4: mlp.down_proj
+[05:53:28] INFO:    Rank percent used: 88.04%
+[05:53:33] INFO:    [Metric] Relative prediction error: 0.182588
+[05:53:33] INFO:    mlp.down_proj   | Rank: 10818 | Time: 4.84s
+[05:53:35] INFO: [*] Layer 5/36 completed in 40.82s
+[05:53:35] INFO: [Layer 6/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:53:38] INFO:    Rank percent used: 99.49%
+[05:53:39] INFO:    [Metric] Relative prediction error: 0.073374
+[05:53:39] INFO:    self_attn.q_proj | Rank: 4075 | Time: 1.64s
+[05:53:39] INFO:    Rank percent used: 99.49%
+[05:53:40] INFO:    [Metric] Relative prediction error: 0.066414
+[05:53:40] INFO:    self_attn.k_proj | Rank: 4075 | Time: 0.91s
+[05:53:40] INFO:    Rank percent used: 99.49%
+[05:53:41] INFO:    [Metric] Relative prediction error: 0.128424
+[05:53:41] INFO:    self_attn.v_proj | Rank: 4075 | Time: 0.89s
+[05:53:42] INFO: [Layer 6/36] Group 2: self_attn.o_proj
+[05:53:44] INFO:    Rank percent used: 97.46%
+[05:53:46] INFO:    [Metric] Relative prediction error: 0.133516
+[05:53:46] INFO:    self_attn.o_proj | Rank: 3992 | Time: 1.64s
+[05:53:46] INFO: [Layer 6/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:53:49] INFO:    Rank percent used: 99.02%
+[05:53:51] INFO:    [Metric] Relative prediction error: 0.027674
+[05:53:51] INFO:    mlp.gate_proj   | Rank: 4056 | Time: 2.72s
+[05:53:52] INFO:    Rank percent used: 99.02%
+[05:53:54] INFO:    [Metric] Relative prediction error: 0.184888
+[05:53:54] INFO:    mlp.up_proj     | Rank: 4056 | Time: 2.72s
+[05:53:55] INFO: [Layer 6/36] Group 4: mlp.down_proj
+[05:54:10] INFO:    Rank percent used: 99.06%
+[05:54:16] INFO:    [Metric] Relative prediction error: 0.184603
+[05:54:16] INFO:    mlp.down_proj   | Rank: 12173 | Time: 5.29s
+[05:54:17] INFO: [*] Layer 6/36 completed in 42.40s
+[05:54:18] INFO: [Layer 7/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:54:20] INFO:    Rank percent used: 99.44%
+[05:54:22] INFO:    [Metric] Relative prediction error: 0.078179
+[05:54:22] INFO:    self_attn.q_proj | Rank: 4073 | Time: 1.64s
+[05:54:22] INFO:    Rank percent used: 99.44%
+[05:54:23] INFO:    [Metric] Relative prediction error: 0.069186
+[05:54:23] INFO:    self_attn.k_proj | Rank: 4073 | Time: 0.91s
+[05:54:23] INFO:    Rank percent used: 99.44%
+[05:54:24] INFO:    [Metric] Relative prediction error: 0.152198
+[05:54:24] INFO:    self_attn.v_proj | Rank: 4073 | Time: 0.90s
+[05:54:24] INFO: [Layer 7/36] Group 2: self_attn.o_proj
+[05:54:27] INFO:    Rank percent used: 99.56%
+[05:54:28] INFO:    [Metric] Relative prediction error: 0.154487
+[05:54:28] INFO:    self_attn.o_proj | Rank: 4078 | Time: 1.64s
+[05:54:29] INFO: [Layer 7/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:54:31] INFO:    Rank percent used: 98.95%
+[05:54:34] INFO:    [Metric] Relative prediction error: 0.034130
+[05:54:34] INFO:    mlp.gate_proj   | Rank: 4053 | Time: 2.72s
+[05:54:34] INFO:    Rank percent used: 98.95%
+[05:54:37] INFO:    [Metric] Relative prediction error: 0.198815
+[05:54:37] INFO:    mlp.up_proj     | Rank: 4053 | Time: 2.72s
+[05:54:37] INFO: [Layer 7/36] Group 4: mlp.down_proj
+[05:54:52] INFO:    Rank percent used: 87.93%
+[05:54:57] INFO:    [Metric] Relative prediction error: 0.018495
+[05:54:57] INFO:    mlp.down_proj   | Rank: 10805 | Time: 4.84s
+[05:54:58] INFO: [*] Layer 7/36 completed in 40.97s
+[05:54:59] INFO: [Layer 8/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:55:01] INFO:    Rank percent used: 99.39%
+[05:55:03] INFO:    [Metric] Relative prediction error: 0.067776
+[05:55:03] INFO:    self_attn.q_proj | Rank: 4071 | Time: 1.64s
+[05:55:03] INFO:    Rank percent used: 99.39%
+[05:55:04] INFO:    [Metric] Relative prediction error: 0.076086
+[05:55:04] INFO:    self_attn.k_proj | Rank: 4071 | Time: 0.93s
+[05:55:04] INFO:    Rank percent used: 99.39%
+[05:55:05] INFO:    [Metric] Relative prediction error: 0.160936
+[05:55:05] INFO:    self_attn.v_proj | Rank: 4071 | Time: 0.89s
+[05:55:05] INFO: [Layer 8/36] Group 2: self_attn.o_proj
+[05:55:08] INFO:    Rank percent used: 95.36%
+[05:55:09] INFO:    [Metric] Relative prediction error: 0.163140
+[05:55:09] INFO:    self_attn.o_proj | Rank: 3906 | Time: 1.65s
+[05:55:10] INFO: [Layer 8/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:55:12] INFO:    Rank percent used: 99.22%
+[05:55:15] INFO:    [Metric] Relative prediction error: 0.035411
+[05:55:15] INFO:    mlp.gate_proj   | Rank: 4064 | Time: 2.72s
+[05:55:15] INFO:    Rank percent used: 99.22%
+[05:55:18] INFO:    [Metric] Relative prediction error: 0.211451
+[05:55:18] INFO:    mlp.up_proj     | Rank: 4064 | Time: 2.72s
+[05:55:18] INFO: [Layer 8/36] Group 4: mlp.down_proj
+[05:55:34] INFO:    Rank percent used: 99.87%
+[05:55:39] INFO:    [Metric] Relative prediction error: 0.215776
+[05:55:39] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[05:55:41] INFO: [*] Layer 8/36 completed in 42.36s
+[05:55:41] INFO: [Layer 9/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:55:44] INFO:    Rank percent used: 99.66%
+[05:55:45] INFO:    [Metric] Relative prediction error: 0.079567
+[05:55:45] INFO:    self_attn.q_proj | Rank: 4082 | Time: 1.64s
+[05:55:46] INFO:    Rank percent used: 99.66%
+[05:55:47] INFO:    [Metric] Relative prediction error: 0.093969
+[05:55:47] INFO:    self_attn.k_proj | Rank: 4082 | Time: 0.92s
+[05:55:47] INFO:    Rank percent used: 99.66%
+[05:55:48] INFO:    [Metric] Relative prediction error: 0.167215
+[05:55:48] INFO:    self_attn.v_proj | Rank: 4082 | Time: 0.89s
+[05:55:48] INFO: [Layer 9/36] Group 2: self_attn.o_proj
+[05:55:50] INFO:    Rank percent used: 99.68%
+[05:55:52] INFO:    [Metric] Relative prediction error: 0.175510
+[05:55:52] INFO:    self_attn.o_proj | Rank: 4083 | Time: 1.64s
+[05:55:52] INFO: [Layer 9/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:55:55] INFO:    Rank percent used: 99.68%
+[05:55:58] INFO:    [Metric] Relative prediction error: 0.133328
+[05:55:58] INFO:    mlp.gate_proj   | Rank: 4083 | Time: 2.72s
+[05:55:58] INFO:    Rank percent used: 99.68%
+[05:56:01] INFO:    [Metric] Relative prediction error: 0.207274
+[05:56:01] INFO:    mlp.up_proj     | Rank: 4083 | Time: 2.72s
+[05:56:01] INFO: [Layer 9/36] Group 4: mlp.down_proj
+[05:56:19] INFO:    Rank percent used: 99.89%
+[05:56:25] INFO:    [Metric] Relative prediction error: 0.219179
+[05:56:25] INFO:    mlp.down_proj   | Rank: 12275 | Time: 5.28s
+[05:56:26] INFO: [*] Layer 9/36 completed in 45.25s
+[05:56:27] INFO: [Layer 10/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:56:29] INFO:    Rank percent used: 99.66%
+[05:56:31] INFO:    [Metric] Relative prediction error: 0.085103
+[05:56:31] INFO:    self_attn.q_proj | Rank: 4082 | Time: 1.64s
+[05:56:31] INFO:    Rank percent used: 99.66%
+[05:56:32] INFO:    [Metric] Relative prediction error: 0.106115
+[05:56:32] INFO:    self_attn.k_proj | Rank: 4082 | Time: 0.91s
+[05:56:32] INFO:    Rank percent used: 99.66%
+[05:56:33] INFO:    [Metric] Relative prediction error: 0.182390
+[05:56:33] INFO:    self_attn.v_proj | Rank: 4082 | Time: 0.90s
+[05:56:33] INFO: [Layer 10/36] Group 2: self_attn.o_proj
+[05:56:36] INFO:    Rank percent used: 97.07%
+[05:56:38] INFO:    [Metric] Relative prediction error: 0.174308
+[05:56:38] INFO:    self_attn.o_proj | Rank: 3976 | Time: 1.64s
+[05:56:38] INFO: [Layer 10/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:56:40] INFO:    Rank percent used: 99.73%
+[05:56:43] INFO:    [Metric] Relative prediction error: 0.100082
+[05:56:43] INFO:    mlp.gate_proj   | Rank: 4085 | Time: 2.72s
+[05:56:43] INFO:    Rank percent used: 99.73%
+[05:56:46] INFO:    [Metric] Relative prediction error: 0.212839
+[05:56:46] INFO:    mlp.up_proj     | Rank: 4085 | Time: 2.72s
+[05:56:46] INFO: [Layer 10/36] Group 4: mlp.down_proj
+[05:57:02] INFO:    Rank percent used: 99.80%
+[05:57:08] INFO:    [Metric] Relative prediction error: 0.205431
+[05:57:08] INFO:    mlp.down_proj   | Rank: 12264 | Time: 5.29s
+[05:57:09] INFO: [*] Layer 10/36 completed in 42.72s
+[05:57:09] INFO: [Layer 11/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:57:12] INFO:    Rank percent used: 99.66%
+[05:57:14] INFO:    [Metric] Relative prediction error: 0.079547
+[05:57:14] INFO:    self_attn.q_proj | Rank: 4082 | Time: 1.64s
+[05:57:14] INFO:    Rank percent used: 99.66%
+[05:57:15] INFO:    [Metric] Relative prediction error: 0.095881
+[05:57:15] INFO:    self_attn.k_proj | Rank: 4082 | Time: 0.92s
+[05:57:15] INFO:    Rank percent used: 99.66%
+[05:57:16] INFO:    [Metric] Relative prediction error: 0.177125
+[05:57:16] INFO:    self_attn.v_proj | Rank: 4082 | Time: 0.89s
+[05:57:16] INFO: [Layer 11/36] Group 2: self_attn.o_proj
+[05:57:19] INFO:    Rank percent used: 99.46%
+[05:57:20] INFO:    [Metric] Relative prediction error: 0.189816
+[05:57:20] INFO:    self_attn.o_proj | Rank: 4074 | Time: 1.64s
+[05:57:21] INFO: [Layer 11/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:57:23] INFO:    Rank percent used: 99.78%
+[05:57:26] INFO:    [Metric] Relative prediction error: 0.110058
+[05:57:26] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.72s
+[05:57:26] INFO:    Rank percent used: 99.78%
+[05:57:29] INFO:    [Metric] Relative prediction error: 0.210605
+[05:57:29] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.72s
+[05:57:29] INFO: [Layer 11/36] Group 4: mlp.down_proj
+[05:57:45] INFO:    Rank percent used: 99.82%
+[05:57:51] INFO:    [Metric] Relative prediction error: 0.200599
+[05:57:51] INFO:    mlp.down_proj   | Rank: 12266 | Time: 5.28s
+[05:57:52] INFO: [*] Layer 11/36 completed in 42.91s
+[05:57:53] INFO: [Layer 12/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:57:55] INFO:    Rank percent used: 99.68%
+[05:57:57] INFO:    [Metric] Relative prediction error: 0.079447
+[05:57:57] INFO:    self_attn.q_proj | Rank: 4083 | Time: 1.64s
+[05:57:57] INFO:    Rank percent used: 99.68%
+[05:57:58] INFO:    [Metric] Relative prediction error: 0.097725
+[05:57:58] INFO:    self_attn.k_proj | Rank: 4083 | Time: 0.92s
+[05:57:58] INFO:    Rank percent used: 99.68%
+[05:57:59] INFO:    [Metric] Relative prediction error: 0.173763
+[05:57:59] INFO:    self_attn.v_proj | Rank: 4083 | Time: 0.89s
+[05:57:59] INFO: [Layer 12/36] Group 2: self_attn.o_proj
+[05:58:02] INFO:    Rank percent used: 99.73%
+[05:58:03] INFO:    [Metric] Relative prediction error: 0.178250
+[05:58:03] INFO:    self_attn.o_proj | Rank: 4085 | Time: 1.64s
+[05:58:04] INFO: [Layer 12/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:58:06] INFO:    Rank percent used: 99.78%
+[05:58:09] INFO:    [Metric] Relative prediction error: 0.122142
+[05:58:09] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.72s
+[05:58:09] INFO:    Rank percent used: 99.78%
+[05:58:12] INFO:    [Metric] Relative prediction error: 0.206582
+[05:58:12] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.72s
+[05:58:12] INFO: [Layer 12/36] Group 4: mlp.down_proj
+[05:58:29] INFO:    Rank percent used: 99.87%
+[05:58:34] INFO:    [Metric] Relative prediction error: 0.206867
+[05:58:34] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.28s
+[05:58:35] INFO: [*] Layer 12/36 completed in 42.95s
+[05:58:36] INFO: [Layer 13/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:58:38] INFO:    Rank percent used: 99.68%
+[05:58:40] INFO:    [Metric] Relative prediction error: 0.073105
+[05:58:40] INFO:    self_attn.q_proj | Rank: 4083 | Time: 1.64s
+[05:58:40] INFO:    Rank percent used: 99.68%
+[05:58:41] INFO:    [Metric] Relative prediction error: 0.090375
+[05:58:41] INFO:    self_attn.k_proj | Rank: 4083 | Time: 0.91s
+[05:58:41] INFO:    Rank percent used: 99.68%
+[05:58:42] INFO:    [Metric] Relative prediction error: 0.164333
+[05:58:42] INFO:    self_attn.v_proj | Rank: 4083 | Time: 0.89s
+[05:58:42] INFO: [Layer 13/36] Group 2: self_attn.o_proj
+[05:58:45] INFO:    Rank percent used: 98.95%
+[05:58:47] INFO:    [Metric] Relative prediction error: 0.147719
+[05:58:47] INFO:    self_attn.o_proj | Rank: 4053 | Time: 1.64s
+[05:58:47] INFO: [Layer 13/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:58:49] INFO:    Rank percent used: 99.78%
+[05:58:52] INFO:    [Metric] Relative prediction error: 0.123890
+[05:58:52] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.72s
+[05:58:52] INFO:    Rank percent used: 99.78%
+[05:58:55] INFO:    [Metric] Relative prediction error: 0.202881
+[05:58:55] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.73s
+[05:58:55] INFO: [Layer 13/36] Group 4: mlp.down_proj
+[05:59:11] INFO:    Rank percent used: 99.87%
+[05:59:17] INFO:    [Metric] Relative prediction error: 0.207374
+[05:59:17] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[05:59:18] INFO: [*] Layer 13/36 completed in 42.63s
+[05:59:18] INFO: [Layer 14/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[05:59:21] INFO:    Rank percent used: 99.51%
+[05:59:23] INFO:    [Metric] Relative prediction error: 0.078678
+[05:59:23] INFO:    self_attn.q_proj | Rank: 4076 | Time: 1.64s
+[05:59:23] INFO:    Rank percent used: 99.51%
+[05:59:24] INFO:    [Metric] Relative prediction error: 0.096991
+[05:59:24] INFO:    self_attn.k_proj | Rank: 4076 | Time: 0.92s
+[05:59:24] INFO:    Rank percent used: 99.51%
+[05:59:25] INFO:    [Metric] Relative prediction error: 0.148287
+[05:59:25] INFO:    self_attn.v_proj | Rank: 4076 | Time: 0.90s
+[05:59:25] INFO: [Layer 14/36] Group 2: self_attn.o_proj
+[05:59:28] INFO:    Rank percent used: 96.41%
+[05:59:29] INFO:    [Metric] Relative prediction error: 0.155056
+[05:59:29] INFO:    self_attn.o_proj | Rank: 3949 | Time: 1.64s
+[05:59:30] INFO: [Layer 14/36] Group 3: mlp.gate_proj, mlp.up_proj
+[05:59:32] INFO:    Rank percent used: 99.80%
+[05:59:35] INFO:    [Metric] Relative prediction error: 0.125622
+[05:59:35] INFO:    mlp.gate_proj   | Rank: 4088 | Time: 2.72s
+[05:59:35] INFO:    Rank percent used: 99.80%
+[05:59:38] INFO:    [Metric] Relative prediction error: 0.198458
+[05:59:38] INFO:    mlp.up_proj     | Rank: 4088 | Time: 2.72s
+[05:59:38] INFO: [Layer 14/36] Group 4: mlp.down_proj
+[05:59:54] INFO:    Rank percent used: 99.87%
+[05:59:59] INFO:    [Metric] Relative prediction error: 0.216189
+[05:59:59] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[06:00:01] INFO: [*] Layer 14/36 completed in 42.65s
+[06:00:01] INFO: [Layer 15/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:00:06] INFO:    Rank percent used: 99.54%
+[06:00:08] INFO:    [Metric] Relative prediction error: 0.073020
+[06:00:08] INFO:    self_attn.q_proj | Rank: 4077 | Time: 1.67s
+[06:00:08] INFO:    Rank percent used: 99.54%
+[06:00:09] INFO:    [Metric] Relative prediction error: 0.085652
+[06:00:09] INFO:    self_attn.k_proj | Rank: 4077 | Time: 0.92s
+[06:00:09] INFO:    Rank percent used: 99.54%
+[06:00:10] INFO:    [Metric] Relative prediction error: 0.150206
+[06:00:10] INFO:    self_attn.v_proj | Rank: 4077 | Time: 0.90s
+[06:00:10] INFO: [Layer 15/36] Group 2: self_attn.o_proj
+[06:00:13] INFO:    Rank percent used: 99.51%
+[06:00:15] INFO:    [Metric] Relative prediction error: 0.171699
+[06:00:15] INFO:    self_attn.o_proj | Rank: 4076 | Time: 1.64s
+[06:00:15] INFO: [Layer 15/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:00:18] INFO:    Rank percent used: 99.76%
+[06:00:20] INFO:    [Metric] Relative prediction error: 0.121534
+[06:00:20] INFO:    mlp.gate_proj   | Rank: 4086 | Time: 2.72s
+[06:00:21] INFO:    Rank percent used: 99.76%
+[06:00:23] INFO:    [Metric] Relative prediction error: 0.200351
+[06:00:23] INFO:    mlp.up_proj     | Rank: 4086 | Time: 2.72s
+[06:00:24] INFO: [Layer 15/36] Group 4: mlp.down_proj
+[06:00:40] INFO:    Rank percent used: 99.87%
+[06:00:45] INFO:    [Metric] Relative prediction error: 0.217449
+[06:00:45] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[06:00:46] INFO: [*] Layer 15/36 completed in 45.53s
+[06:00:47] INFO: [Layer 16/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:00:49] INFO:    Rank percent used: 99.41%
+[06:00:51] INFO:    [Metric] Relative prediction error: 0.075895
+[06:00:51] INFO:    self_attn.q_proj | Rank: 4072 | Time: 1.64s
+[06:00:51] INFO:    Rank percent used: 99.41%
+[06:00:52] INFO:    [Metric] Relative prediction error: 0.088750
+[06:00:52] INFO:    self_attn.k_proj | Rank: 4072 | Time: 0.91s
+[06:00:52] INFO:    Rank percent used: 99.41%
+[06:00:53] INFO:    [Metric] Relative prediction error: 0.143629
+[06:00:53] INFO:    self_attn.v_proj | Rank: 4072 | Time: 0.90s
+[06:00:53] INFO: [Layer 16/36] Group 2: self_attn.o_proj
+[06:00:56] INFO:    Rank percent used: 99.46%
+[06:00:58] INFO:    [Metric] Relative prediction error: 0.174346
+[06:00:58] INFO:    self_attn.o_proj | Rank: 4074 | Time: 1.64s
+[06:00:58] INFO: [Layer 16/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:01:01] INFO:    Rank percent used: 99.78%
+[06:01:03] INFO:    [Metric] Relative prediction error: 0.128405
+[06:01:03] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.73s
+[06:01:04] INFO:    Rank percent used: 99.78%
+[06:01:06] INFO:    [Metric] Relative prediction error: 0.197960
+[06:01:06] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.72s
+[06:01:07] INFO: [Layer 16/36] Group 4: mlp.down_proj
+[06:01:22] INFO:    Rank percent used: 99.89%
+[06:01:28] INFO:    [Metric] Relative prediction error: 0.221313
+[06:01:28] INFO:    mlp.down_proj   | Rank: 12274 | Time: 5.28s
+[06:01:29] INFO: [*] Layer 16/36 completed in 42.54s
+[06:01:30] INFO: [Layer 17/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:01:32] INFO:    Rank percent used: 99.46%
+[06:01:34] INFO:    [Metric] Relative prediction error: 0.087517
+[06:01:34] INFO:    self_attn.q_proj | Rank: 4074 | Time: 1.64s
+[06:01:34] INFO:    Rank percent used: 99.46%
+[06:01:35] INFO:    [Metric] Relative prediction error: 0.096485
+[06:01:35] INFO:    self_attn.k_proj | Rank: 4074 | Time: 0.91s
+[06:01:35] INFO:    Rank percent used: 99.46%
+[06:01:36] INFO:    [Metric] Relative prediction error: 0.162233
+[06:01:36] INFO:    self_attn.v_proj | Rank: 4074 | Time: 0.89s
+[06:01:36] INFO: [Layer 17/36] Group 2: self_attn.o_proj
+[06:01:39] INFO:    Rank percent used: 99.49%
+[06:01:40] INFO:    [Metric] Relative prediction error: 0.188873
+[06:01:40] INFO:    self_attn.o_proj | Rank: 4075 | Time: 1.64s
+[06:01:41] INFO: [Layer 17/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:01:43] INFO:    Rank percent used: 99.76%
+[06:01:46] INFO:    [Metric] Relative prediction error: 0.122218
+[06:01:46] INFO:    mlp.gate_proj   | Rank: 4086 | Time: 2.72s
+[06:01:46] INFO:    Rank percent used: 99.76%
+[06:01:49] INFO:    [Metric] Relative prediction error: 0.199443
+[06:01:49] INFO:    mlp.up_proj     | Rank: 4086 | Time: 2.72s
+[06:01:49] INFO: [Layer 17/36] Group 4: mlp.down_proj
+[06:02:05] INFO:    Rank percent used: 94.79%
+[06:02:10] INFO:    [Metric] Relative prediction error: 0.021037
+[06:02:10] INFO:    mlp.down_proj   | Rank: 11648 | Time: 5.05s
+[06:02:12] INFO: [*] Layer 17/36 completed in 42.33s
+[06:02:12] INFO: [Layer 18/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:02:15] INFO:    Rank percent used: 99.56%
+[06:02:16] INFO:    [Metric] Relative prediction error: 0.088534
+[06:02:16] INFO:    self_attn.q_proj | Rank: 4078 | Time: 1.64s
+[06:02:16] INFO:    Rank percent used: 99.56%
+[06:02:17] INFO:    [Metric] Relative prediction error: 0.101668
+[06:02:17] INFO:    self_attn.k_proj | Rank: 4078 | Time: 0.91s
+[06:02:18] INFO:    Rank percent used: 99.56%
+[06:02:18] INFO:    [Metric] Relative prediction error: 0.160798
+[06:02:18] INFO:    self_attn.v_proj | Rank: 4078 | Time: 0.89s
+[06:02:19] INFO: [Layer 18/36] Group 2: self_attn.o_proj
+[06:02:21] INFO:    Rank percent used: 98.78%
+[06:02:23] INFO:    [Metric] Relative prediction error: 0.161374
+[06:02:23] INFO:    self_attn.o_proj | Rank: 4046 | Time: 1.64s
+[06:02:23] INFO: [Layer 18/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:02:26] INFO:    Rank percent used: 99.80%
+[06:02:29] INFO:    [Metric] Relative prediction error: 0.128477
+[06:02:29] INFO:    mlp.gate_proj   | Rank: 4088 | Time: 2.72s
+[06:02:29] INFO:    Rank percent used: 99.80%
+[06:02:32] INFO:    [Metric] Relative prediction error: 0.192893
+[06:02:32] INFO:    mlp.up_proj     | Rank: 4088 | Time: 2.72s
+[06:02:32] INFO: [Layer 18/36] Group 4: mlp.down_proj
+[06:02:48] INFO:    Rank percent used: 99.87%
+[06:02:53] INFO:    [Metric] Relative prediction error: 0.220970
+[06:02:53] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[06:02:55] INFO: [*] Layer 18/36 completed in 42.91s
+[06:02:55] INFO: [Layer 19/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:02:58] INFO:    Rank percent used: 99.39%
+[06:02:59] INFO:    [Metric] Relative prediction error: 0.082482
+[06:02:59] INFO:    self_attn.q_proj | Rank: 4071 | Time: 1.64s
+[06:03:00] INFO:    Rank percent used: 99.39%
+[06:03:00] INFO:    [Metric] Relative prediction error: 0.091368
+[06:03:00] INFO:    self_attn.k_proj | Rank: 4071 | Time: 0.91s
+[06:03:01] INFO:    Rank percent used: 99.39%
+[06:03:02] INFO:    [Metric] Relative prediction error: 0.153024
+[06:03:02] INFO:    self_attn.v_proj | Rank: 4071 | Time: 0.89s
+[06:03:02] INFO: [Layer 19/36] Group 2: self_attn.o_proj
+[06:03:04] INFO:    Rank percent used: 99.58%
+[06:03:06] INFO:    [Metric] Relative prediction error: 0.180526
+[06:03:06] INFO:    self_attn.o_proj | Rank: 4079 | Time: 1.64s
+[06:03:06] INFO: [Layer 19/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:03:09] INFO:    Rank percent used: 99.78%
+[06:03:12] INFO:    [Metric] Relative prediction error: 0.133598
+[06:03:12] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.72s
+[06:03:12] INFO:    Rank percent used: 99.78%
+[06:03:15] INFO:    [Metric] Relative prediction error: 0.196504
+[06:03:15] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.72s
+[06:03:15] INFO: [Layer 19/36] Group 4: mlp.down_proj
+[06:03:31] INFO:    Rank percent used: 99.87%
+[06:03:37] INFO:    [Metric] Relative prediction error: 0.219609
+[06:03:37] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[06:03:38] INFO: [*] Layer 19/36 completed in 43.00s
+[06:03:38] INFO: [Layer 20/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:03:41] INFO:    Rank percent used: 99.49%
+[06:03:43] INFO:    [Metric] Relative prediction error: 0.080536
+[06:03:43] INFO:    self_attn.q_proj | Rank: 4075 | Time: 1.64s
+[06:03:43] INFO:    Rank percent used: 99.49%
+[06:03:44] INFO:    [Metric] Relative prediction error: 0.086015
+[06:03:44] INFO:    self_attn.k_proj | Rank: 4075 | Time: 0.91s
+[06:03:44] INFO:    Rank percent used: 99.49%
+[06:03:45] INFO:    [Metric] Relative prediction error: 0.168546
+[06:03:45] INFO:    self_attn.v_proj | Rank: 4075 | Time: 0.89s
+[06:03:45] INFO: [Layer 20/36] Group 2: self_attn.o_proj
+[06:03:48] INFO:    Rank percent used: 98.80%
+[06:03:49] INFO:    [Metric] Relative prediction error: 0.146819
+[06:03:49] INFO:    self_attn.o_proj | Rank: 4047 | Time: 1.64s
+[06:03:50] INFO: [Layer 20/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:03:52] INFO:    Rank percent used: 99.80%
+[06:03:55] INFO:    [Metric] Relative prediction error: 0.134838
+[06:03:55] INFO:    mlp.gate_proj   | Rank: 4088 | Time: 2.72s
+[06:03:55] INFO:    Rank percent used: 99.80%
+[06:03:58] INFO:    [Metric] Relative prediction error: 0.192034
+[06:03:58] INFO:    mlp.up_proj     | Rank: 4088 | Time: 2.72s
+[06:03:58] INFO: [Layer 20/36] Group 4: mlp.down_proj
+[06:04:14] INFO:    Rank percent used: 99.86%
+[06:04:20] INFO:    [Metric] Relative prediction error: 0.221647
+[06:04:20] INFO:    mlp.down_proj   | Rank: 12271 | Time: 5.29s
+[06:04:21] INFO: [*] Layer 20/36 completed in 42.83s
+[06:04:21] INFO: [Layer 21/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:04:24] INFO:    Rank percent used: 99.44%
+[06:04:26] INFO:    [Metric] Relative prediction error: 0.081509
+[06:04:26] INFO:    self_attn.q_proj | Rank: 4073 | Time: 1.64s
+[06:04:26] INFO:    Rank percent used: 99.44%
+[06:04:27] INFO:    [Metric] Relative prediction error: 0.087067
+[06:04:27] INFO:    self_attn.k_proj | Rank: 4073 | Time: 0.91s
+[06:04:27] INFO:    Rank percent used: 99.44%
+[06:04:28] INFO:    [Metric] Relative prediction error: 0.161750
+[06:04:28] INFO:    self_attn.v_proj | Rank: 4073 | Time: 0.90s
+[06:04:28] INFO: [Layer 21/36] Group 2: self_attn.o_proj
+[06:04:31] INFO:    Rank percent used: 98.54%
+[06:04:32] INFO:    [Metric] Relative prediction error: 0.181601
+[06:04:32] INFO:    self_attn.o_proj | Rank: 4036 | Time: 1.64s
+[06:04:33] INFO: [Layer 21/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:04:35] INFO:    Rank percent used: 99.78%
+[06:04:38] INFO:    [Metric] Relative prediction error: 0.131525
+[06:04:38] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.72s
+[06:04:38] INFO:    Rank percent used: 99.78%
+[06:04:41] INFO:    [Metric] Relative prediction error: 0.193931
+[06:04:41] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.72s
+[06:04:41] INFO: [Layer 21/36] Group 4: mlp.down_proj
+[06:04:57] INFO:    Rank percent used: 99.87%
+[06:05:03] INFO:    [Metric] Relative prediction error: 0.228057
+[06:05:03] INFO:    mlp.down_proj   | Rank: 12272 | Time: 5.29s
+[06:05:04] INFO: [*] Layer 21/36 completed in 42.98s
+[06:05:04] INFO: [Layer 22/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:05:07] INFO:    Rank percent used: 99.41%
+[06:05:09] INFO:    [Metric] Relative prediction error: 0.086736
+[06:05:09] INFO:    self_attn.q_proj | Rank: 4072 | Time: 1.64s
+[06:05:09] INFO:    Rank percent used: 99.41%
+[06:05:10] INFO:    [Metric] Relative prediction error: 0.082839
+[06:05:10] INFO:    self_attn.k_proj | Rank: 4072 | Time: 0.91s
+[06:05:10] INFO:    Rank percent used: 99.41%
+[06:05:11] INFO:    [Metric] Relative prediction error: 0.170185
+[06:05:11] INFO:    self_attn.v_proj | Rank: 4072 | Time: 0.89s
+[06:05:11] INFO: [Layer 22/36] Group 2: self_attn.o_proj
+[06:05:14] INFO:    Rank percent used: 99.41%
+[06:05:15] INFO:    [Metric] Relative prediction error: 0.180423
+[06:05:15] INFO:    self_attn.o_proj | Rank: 4072 | Time: 1.64s
+[06:05:16] INFO: [Layer 22/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:05:18] INFO:    Rank percent used: 99.78%
+[06:05:21] INFO:    [Metric] Relative prediction error: 0.131063
+[06:05:21] INFO:    mlp.gate_proj   | Rank: 4087 | Time: 2.72s
+[06:05:21] INFO:    Rank percent used: 99.78%
+[06:05:24] INFO:    [Metric] Relative prediction error: 0.195516
+[06:05:24] INFO:    mlp.up_proj     | Rank: 4087 | Time: 2.73s
+[06:05:24] INFO: [Layer 22/36] Group 4: mlp.down_proj
+[06:05:40] INFO:    Rank percent used: 99.86%
+[06:05:45] INFO:    [Metric] Relative prediction error: 0.226710
+[06:05:45] INFO:    mlp.down_proj   | Rank: 12271 | Time: 5.29s
+[06:05:47] INFO: [*] Layer 22/36 completed in 42.70s
+[06:05:47] INFO: [Layer 23/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:05:50] INFO:    Rank percent used: 99.66%
+[06:05:52] INFO:    [Metric] Relative prediction error: 0.080514
+[06:05:52] INFO:    self_attn.q_proj | Rank: 4082 | Time: 1.64s
+[06:05:52] INFO:    Rank percent used: 99.66%
+[06:05:53] INFO:    [Metric] Relative prediction error: 0.093793
+[06:05:53] INFO:    self_attn.k_proj | Rank: 4082 | Time: 0.91s
+[06:05:53] INFO:    Rank percent used: 99.66%
+[06:05:54] INFO:    [Metric] Relative prediction error: 0.198775
+[06:05:54] INFO:    self_attn.v_proj | Rank: 4082 | Time: 0.89s
+[06:05:54] INFO: [Layer 23/36] Group 2: self_attn.o_proj
+[06:05:57] INFO:    Rank percent used: 98.85%
+[06:05:58] INFO:    [Metric] Relative prediction error: 0.175628
+[06:05:58] INFO:    self_attn.o_proj | Rank: 4049 | Time: 1.64s
+[06:05:59] INFO: [Layer 23/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:06:01] INFO:    Rank percent used: 99.83%
+[06:06:04] INFO:    [Metric] Relative prediction error: 0.120197
+[06:06:04] INFO:    mlp.gate_proj   | Rank: 4089 | Time: 2.72s
+[06:06:04] INFO:    Rank percent used: 99.83%
+[06:06:07] INFO:    [Metric] Relative prediction error: 0.177607
+[06:06:07] INFO:    mlp.up_proj     | Rank: 4089 | Time: 2.72s
+[06:06:07] INFO: [Layer 23/36] Group 4: mlp.down_proj
+[06:06:23] INFO:    Rank percent used: 99.77%
+[06:06:29] INFO:    [Metric] Relative prediction error: 0.214332
+[06:06:29] INFO:    mlp.down_proj   | Rank: 12260 | Time: 5.29s
+[06:06:30] INFO: [*] Layer 23/36 completed in 42.99s
+[06:06:30] INFO: [Layer 24/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:06:33] INFO:    Rank percent used: 99.61%
+[06:06:35] INFO:    [Metric] Relative prediction error: 0.083054
+[06:06:35] INFO:    self_attn.q_proj | Rank: 4080 | Time: 1.64s
+[06:06:35] INFO:    Rank percent used: 99.61%
+[06:06:36] INFO:    [Metric] Relative prediction error: 0.083664
+[06:06:36] INFO:    self_attn.k_proj | Rank: 4080 | Time: 0.90s
+[06:06:36] INFO:    Rank percent used: 99.61%
+[06:06:37] INFO:    [Metric] Relative prediction error: 0.204452
+[06:06:37] INFO:    self_attn.v_proj | Rank: 4080 | Time: 0.89s
+[06:06:37] INFO: [Layer 24/36] Group 2: self_attn.o_proj
+[06:06:40] INFO:    Rank percent used: 99.66%
+[06:06:41] INFO:    [Metric] Relative prediction error: 0.175932
+[06:06:41] INFO:    self_attn.o_proj | Rank: 4082 | Time: 1.64s
+[06:06:42] INFO: [Layer 24/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:06:44] INFO:    Rank percent used: 99.80%
+[06:06:47] INFO:    [Metric] Relative prediction error: 0.115327
+[06:06:47] INFO:    mlp.gate_proj   | Rank: 4088 | Time: 2.72s
+[06:06:47] INFO:    Rank percent used: 99.80%
+[06:06:50] INFO:    [Metric] Relative prediction error: 0.170926
+[06:06:50] INFO:    mlp.up_proj     | Rank: 4088 | Time: 2.72s
+[06:06:50] INFO: [Layer 24/36] Group 4: mlp.down_proj
+[06:07:06] INFO:    Rank percent used: 99.72%
+[06:07:12] INFO:    [Metric] Relative prediction error: 0.207188
+[06:07:12] INFO:    mlp.down_proj   | Rank: 12254 | Time: 5.29s
+[06:07:13] INFO: [*] Layer 24/36 completed in 42.86s
+[06:07:13] INFO: [Layer 25/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:07:16] INFO:    Rank percent used: 99.58%
+[06:07:18] INFO:    [Metric] Relative prediction error: 0.087530
+[06:07:18] INFO:    self_attn.q_proj | Rank: 4079 | Time: 1.64s
+[06:07:18] INFO:    Rank percent used: 99.58%
+[06:07:19] INFO:    [Metric] Relative prediction error: 0.096357
+[06:07:19] INFO:    self_attn.k_proj | Rank: 4079 | Time: 0.92s
+[06:07:19] INFO:    Rank percent used: 99.58%
+[06:07:20] INFO:    [Metric] Relative prediction error: 0.198561
+[06:07:20] INFO:    self_attn.v_proj | Rank: 4079 | Time: 0.90s
+[06:07:20] INFO: [Layer 25/36] Group 2: self_attn.o_proj
+[06:07:23] INFO:    Rank percent used: 99.39%
+[06:07:24] INFO:    [Metric] Relative prediction error: 0.148422
+[06:07:24] INFO:    self_attn.o_proj | Rank: 4071 | Time: 1.64s
+[06:07:25] INFO: [Layer 25/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:07:27] INFO:    Rank percent used: 99.76%
+[06:07:30] INFO:    [Metric] Relative prediction error: 0.110867
+[06:07:30] INFO:    mlp.gate_proj   | Rank: 4086 | Time: 2.72s
+[06:07:30] INFO:    Rank percent used: 99.76%
+[06:07:33] INFO:    [Metric] Relative prediction error: 0.167469
+[06:07:33] INFO:    mlp.up_proj     | Rank: 4086 | Time: 2.72s
+[06:07:33] INFO: [Layer 25/36] Group 4: mlp.down_proj
+[06:07:49] INFO:    Rank percent used: 99.67%
+[06:07:55] INFO:    [Metric] Relative prediction error: 0.193883
+[06:07:55] INFO:    mlp.down_proj   | Rank: 12248 | Time: 5.29s
+[06:07:56] INFO: [*] Layer 25/36 completed in 42.85s
+[06:07:56] INFO: [Layer 26/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:07:59] INFO:    Rank percent used: 99.61%
+[06:08:01] INFO:    [Metric] Relative prediction error: 0.088042
+[06:08:01] INFO:    self_attn.q_proj | Rank: 4080 | Time: 1.64s
+[06:08:01] INFO:    Rank percent used: 99.61%
+[06:08:02] INFO:    [Metric] Relative prediction error: 0.094632
+[06:08:02] INFO:    self_attn.k_proj | Rank: 4080 | Time: 0.90s
+[06:08:02] INFO:    Rank percent used: 99.61%
+[06:08:03] INFO:    [Metric] Relative prediction error: 0.192665
+[06:08:03] INFO:    self_attn.v_proj | Rank: 4080 | Time: 0.89s
+[06:08:03] INFO: [Layer 26/36] Group 2: self_attn.o_proj
+[06:08:06] INFO:    Rank percent used: 99.32%
+[06:08:07] INFO:    [Metric] Relative prediction error: 0.162506
+[06:08:07] INFO:    self_attn.o_proj | Rank: 4068 | Time: 1.64s
+[06:08:08] INFO: [Layer 26/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:08:10] INFO:    Rank percent used: 99.76%
+[06:08:13] INFO:    [Metric] Relative prediction error: 0.112377
+[06:08:13] INFO:    mlp.gate_proj   | Rank: 4086 | Time: 2.72s
+[06:08:13] INFO:    Rank percent used: 99.76%
+[06:08:16] INFO:    [Metric] Relative prediction error: 0.170251
+[06:08:16] INFO:    mlp.up_proj     | Rank: 4086 | Time: 2.72s
+[06:08:16] INFO: [Layer 26/36] Group 4: mlp.down_proj
+[06:08:32] INFO:    Rank percent used: 99.72%
+[06:08:38] INFO:    [Metric] Relative prediction error: 0.205681
+[06:08:38] INFO:    mlp.down_proj   | Rank: 12253 | Time: 5.29s
+[06:08:39] INFO: [*] Layer 26/36 completed in 42.95s
+[06:08:40] INFO: [Layer 27/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:08:42] INFO:    Rank percent used: 99.58%
+[06:08:44] INFO:    [Metric] Relative prediction error: 0.095654
+[06:08:44] INFO:    self_attn.q_proj | Rank: 4079 | Time: 1.64s
+[06:08:44] INFO:    Rank percent used: 99.58%
+[06:08:45] INFO:    [Metric] Relative prediction error: 0.109576
+[06:08:45] INFO:    self_attn.k_proj | Rank: 4079 | Time: 0.92s
+[06:08:45] INFO:    Rank percent used: 99.58%
+[06:08:46] INFO:    [Metric] Relative prediction error: 0.203782
+[06:08:46] INFO:    self_attn.v_proj | Rank: 4079 | Time: 0.90s
+[06:08:46] INFO: [Layer 27/36] Group 2: self_attn.o_proj
+[06:08:49] INFO:    Rank percent used: 99.15%
+[06:08:50] INFO:    [Metric] Relative prediction error: 0.171774
+[06:08:50] INFO:    self_attn.o_proj | Rank: 4061 | Time: 1.64s
+[06:08:51] INFO: [Layer 27/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:08:53] INFO:    Rank percent used: 99.73%
+[06:08:56] INFO:    [Metric] Relative prediction error: 0.108897
+[06:08:56] INFO:    mlp.gate_proj   | Rank: 4085 | Time: 2.72s
+[06:08:56] INFO:    Rank percent used: 99.73%
+[06:08:59] INFO:    [Metric] Relative prediction error: 0.172691
+[06:08:59] INFO:    mlp.up_proj     | Rank: 4085 | Time: 2.72s
+[06:08:59] INFO: [Layer 27/36] Group 4: mlp.down_proj
+[06:09:16] INFO:    Rank percent used: 99.73%
+[06:09:21] INFO:    [Metric] Relative prediction error: 0.200504
+[06:09:21] INFO:    mlp.down_proj   | Rank: 12255 | Time: 5.29s
+[06:09:22] INFO: [*] Layer 27/36 completed in 42.99s
+[06:09:23] INFO: [Layer 28/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:09:25] INFO:    Rank percent used: 99.66%
+[06:09:27] INFO:    [Metric] Relative prediction error: 0.096660
+[06:09:27] INFO:    self_attn.q_proj | Rank: 4082 | Time: 1.64s
+[06:09:27] INFO:    Rank percent used: 99.66%
+[06:09:28] INFO:    [Metric] Relative prediction error: 0.107504
+[06:09:28] INFO:    self_attn.k_proj | Rank: 4082 | Time: 0.91s
+[06:09:28] INFO:    Rank percent used: 99.66%
+[06:09:29] INFO:    [Metric] Relative prediction error: 0.196672
+[06:09:29] INFO:    self_attn.v_proj | Rank: 4082 | Time: 0.89s
+[06:09:29] INFO: [Layer 28/36] Group 2: self_attn.o_proj
+[06:09:32] INFO:    Rank percent used: 98.90%
+[06:09:34] INFO:    [Metric] Relative prediction error: 0.141213
+[06:09:34] INFO:    self_attn.o_proj | Rank: 4051 | Time: 1.64s
+[06:09:34] INFO: [Layer 28/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:09:37] INFO:    Rank percent used: 99.73%
+[06:09:39] INFO:    [Metric] Relative prediction error: 0.108327
+[06:09:39] INFO:    mlp.gate_proj   | Rank: 4085 | Time: 2.72s
+[06:09:39] INFO:    Rank percent used: 99.73%
+[06:09:42] INFO:    [Metric] Relative prediction error: 0.169279
+[06:09:42] INFO:    mlp.up_proj     | Rank: 4085 | Time: 2.72s
+[06:09:42] INFO: [Layer 28/36] Group 4: mlp.down_proj
+[06:09:59] INFO:    Rank percent used: 99.72%
+[06:10:04] INFO:    [Metric] Relative prediction error: 0.205465
+[06:10:04] INFO:    mlp.down_proj   | Rank: 12253 | Time: 5.28s
+[06:10:05] INFO: [*] Layer 28/36 completed in 42.89s
+[06:10:06] INFO: [Layer 29/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:10:08] INFO:    Rank percent used: 99.58%
+[06:10:10] INFO:    [Metric] Relative prediction error: 0.092866
+[06:10:10] INFO:    self_attn.q_proj | Rank: 4079 | Time: 1.64s
+[06:10:10] INFO:    Rank percent used: 99.58%
+[06:10:11] INFO:    [Metric] Relative prediction error: 0.094821
+[06:10:11] INFO:    self_attn.k_proj | Rank: 4079 | Time: 0.91s
+[06:10:11] INFO:    Rank percent used: 99.58%
+[06:10:12] INFO:    [Metric] Relative prediction error: 0.185478
+[06:10:12] INFO:    self_attn.v_proj | Rank: 4079 | Time: 0.89s
+[06:10:12] INFO: [Layer 29/36] Group 2: self_attn.o_proj
+[06:10:15] INFO:    Rank percent used: 99.49%
+[06:10:17] INFO:    [Metric] Relative prediction error: 0.170346
+[06:10:17] INFO:    self_attn.o_proj | Rank: 4075 | Time: 1.64s
+[06:10:17] INFO: [Layer 29/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:10:20] INFO:    Rank percent used: 99.76%
+[06:10:22] INFO:    [Metric] Relative prediction error: 0.111458
+[06:10:22] INFO:    mlp.gate_proj   | Rank: 4086 | Time: 2.72s
+[06:10:22] INFO:    Rank percent used: 99.76%
+[06:10:25] INFO:    [Metric] Relative prediction error: 0.163635
+[06:10:25] INFO:    mlp.up_proj     | Rank: 4086 | Time: 2.72s
+[06:10:25] INFO: [Layer 29/36] Group 4: mlp.down_proj
+[06:10:42] INFO:    Rank percent used: 99.70%
+[06:10:47] INFO:    [Metric] Relative prediction error: 0.203103
+[06:10:47] INFO:    mlp.down_proj   | Rank: 12251 | Time: 5.29s
+[06:10:48] INFO: [*] Layer 29/36 completed in 42.91s
+[06:10:49] INFO: [Layer 30/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:10:51] INFO:    Rank percent used: 99.54%
+[06:10:53] INFO:    [Metric] Relative prediction error: 0.101764
+[06:10:53] INFO:    self_attn.q_proj | Rank: 4077 | Time: 1.64s
+[06:10:53] INFO:    Rank percent used: 99.54%
+[06:10:54] INFO:    [Metric] Relative prediction error: 0.112438
+[06:10:54] INFO:    self_attn.k_proj | Rank: 4077 | Time: 0.91s
+[06:10:54] INFO:    Rank percent used: 99.54%
+[06:10:55] INFO:    [Metric] Relative prediction error: 0.179648
+[06:10:55] INFO:    self_attn.v_proj | Rank: 4077 | Time: 0.89s
+[06:10:55] INFO: [Layer 30/36] Group 2: self_attn.o_proj
+[06:10:58] INFO:    Rank percent used: 99.10%
+[06:11:00] INFO:    [Metric] Relative prediction error: 0.162348
+[06:11:00] INFO:    self_attn.o_proj | Rank: 4059 | Time: 1.64s
+[06:11:00] INFO: [Layer 30/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:11:03] INFO:    Rank percent used: 99.71%
+[06:11:05] INFO:    [Metric] Relative prediction error: 0.108617
+[06:11:05] INFO:    mlp.gate_proj   | Rank: 4084 | Time: 2.72s
+[06:11:05] INFO:    Rank percent used: 99.71%
+[06:11:08] INFO:    [Metric] Relative prediction error: 0.168240
+[06:11:08] INFO:    mlp.up_proj     | Rank: 4084 | Time: 2.73s
+[06:11:09] INFO: [Layer 30/36] Group 4: mlp.down_proj
+[06:11:25] INFO:    Rank percent used: 99.72%
+[06:11:30] INFO:    [Metric] Relative prediction error: 0.187434
+[06:11:30] INFO:    mlp.down_proj   | Rank: 12253 | Time: 5.29s
+[06:11:31] INFO: [*] Layer 30/36 completed in 42.90s
+[06:11:32] INFO: [Layer 31/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:11:34] INFO:    Rank percent used: 99.73%
+[06:11:36] INFO:    [Metric] Relative prediction error: 0.088430
+[06:11:36] INFO:    self_attn.q_proj | Rank: 4085 | Time: 1.64s
+[06:11:36] INFO:    Rank percent used: 99.73%
+[06:11:37] INFO:    [Metric] Relative prediction error: 0.100118
+[06:11:37] INFO:    self_attn.k_proj | Rank: 4085 | Time: 0.91s
+[06:11:37] INFO:    Rank percent used: 99.73%
+[06:11:38] INFO:    [Metric] Relative prediction error: 0.209575
+[06:11:38] INFO:    self_attn.v_proj | Rank: 4085 | Time: 0.89s
+[06:11:39] INFO: [Layer 31/36] Group 2: self_attn.o_proj
+[06:11:41] INFO:    Rank percent used: 98.56%
+[06:11:43] INFO:    [Metric] Relative prediction error: 0.148769
+[06:11:43] INFO:    self_attn.o_proj | Rank: 4037 | Time: 1.64s
+[06:11:43] INFO: [Layer 31/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:11:46] INFO:    Rank percent used: 99.71%
+[06:11:48] INFO:    [Metric] Relative prediction error: 0.114771
+[06:11:48] INFO:    mlp.gate_proj   | Rank: 4084 | Time: 2.72s
+[06:11:49] INFO:    Rank percent used: 99.71%
+[06:11:51] INFO:    [Metric] Relative prediction error: 0.162806
+[06:11:51] INFO:    mlp.up_proj     | Rank: 4084 | Time: 2.72s
+[06:11:52] INFO: [Layer 31/36] Group 4: mlp.down_proj
+[06:12:08] INFO:    Rank percent used: 99.71%
+[06:12:13] INFO:    [Metric] Relative prediction error: 0.182088
+[06:12:13] INFO:    mlp.down_proj   | Rank: 12252 | Time: 5.29s
+[06:12:15] INFO: [*] Layer 31/36 completed in 43.16s
+[06:12:15] INFO: [Layer 32/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:12:18] INFO:    Rank percent used: 99.61%
+[06:12:19] INFO:    [Metric] Relative prediction error: 0.089950
+[06:12:19] INFO:    self_attn.q_proj | Rank: 4080 | Time: 1.64s
+[06:12:20] INFO:    Rank percent used: 99.61%
+[06:12:21] INFO:    [Metric] Relative prediction error: 0.107832
+[06:12:21] INFO:    self_attn.k_proj | Rank: 4080 | Time: 0.90s
+[06:12:21] INFO:    Rank percent used: 99.61%
+[06:12:22] INFO:    [Metric] Relative prediction error: 0.197518
+[06:12:22] INFO:    self_attn.v_proj | Rank: 4080 | Time: 0.89s
+[06:12:22] INFO: [Layer 32/36] Group 2: self_attn.o_proj
+[06:12:24] INFO:    Rank percent used: 99.46%
+[06:12:26] INFO:    [Metric] Relative prediction error: 0.163220
+[06:12:26] INFO:    self_attn.o_proj | Rank: 4074 | Time: 1.64s
+[06:12:26] INFO: [Layer 32/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:12:29] INFO:    Rank percent used: 99.71%
+[06:12:32] INFO:    [Metric] Relative prediction error: 0.124537
+[06:12:32] INFO:    mlp.gate_proj   | Rank: 4084 | Time: 2.72s
+[06:12:32] INFO:    Rank percent used: 99.71%
+[06:12:35] INFO:    [Metric] Relative prediction error: 0.168154
+[06:12:35] INFO:    mlp.up_proj     | Rank: 4084 | Time: 2.72s
+[06:12:35] INFO: [Layer 32/36] Group 4: mlp.down_proj
+[06:12:51] INFO:    Rank percent used: 99.70%
+[06:12:57] INFO:    [Metric] Relative prediction error: 0.190766
+[06:12:57] INFO:    mlp.down_proj   | Rank: 12251 | Time: 5.29s
+[06:12:58] INFO: [*] Layer 32/36 completed in 42.94s
+[06:12:58] INFO: [Layer 33/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:13:01] INFO:    Rank percent used: 99.61%
+[06:13:03] INFO:    [Metric] Relative prediction error: 0.093859
+[06:13:03] INFO:    self_attn.q_proj | Rank: 4080 | Time: 1.64s
+[06:13:03] INFO:    Rank percent used: 99.61%
+[06:13:04] INFO:    [Metric] Relative prediction error: 0.105256
+[06:13:04] INFO:    self_attn.k_proj | Rank: 4080 | Time: 0.90s
+[06:13:04] INFO:    Rank percent used: 99.61%
+[06:13:05] INFO:    [Metric] Relative prediction error: 0.203074
+[06:13:05] INFO:    self_attn.v_proj | Rank: 4080 | Time: 0.89s
+[06:13:05] INFO: [Layer 33/36] Group 2: self_attn.o_proj
+[06:13:07] INFO:    Rank percent used: 99.00%
+[06:13:09] INFO:    [Metric] Relative prediction error: 0.143353
+[06:13:09] INFO:    self_attn.o_proj | Rank: 4055 | Time: 1.64s
+[06:13:09] INFO: [Layer 33/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:13:12] INFO:    Rank percent used: 99.73%
+[06:13:15] INFO:    [Metric] Relative prediction error: 0.132214
+[06:13:15] INFO:    mlp.gate_proj   | Rank: 4085 | Time: 2.72s
+[06:13:15] INFO:    Rank percent used: 99.73%
+[06:13:18] INFO:    [Metric] Relative prediction error: 0.167265
+[06:13:18] INFO:    mlp.up_proj     | Rank: 4085 | Time: 2.72s
+[06:13:18] INFO: [Layer 33/36] Group 4: mlp.down_proj
+[06:13:34] INFO:    Rank percent used: 99.70%
+[06:13:40] INFO:    [Metric] Relative prediction error: 0.201779
+[06:13:40] INFO:    mlp.down_proj   | Rank: 12251 | Time: 5.29s
+[06:13:41] INFO: [*] Layer 33/36 completed in 42.95s
+[06:13:41] INFO: [Layer 34/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:13:44] INFO:    Rank percent used: 99.41%
+[06:13:46] INFO:    [Metric] Relative prediction error: 0.099435
+[06:13:46] INFO:    self_attn.q_proj | Rank: 4072 | Time: 1.64s
+[06:13:46] INFO:    Rank percent used: 99.41%
+[06:13:47] INFO:    [Metric] Relative prediction error: 0.120462
+[06:13:47] INFO:    self_attn.k_proj | Rank: 4072 | Time: 0.92s
+[06:13:47] INFO:    Rank percent used: 99.41%
+[06:13:48] INFO:    [Metric] Relative prediction error: 0.184652
+[06:13:48] INFO:    self_attn.v_proj | Rank: 4072 | Time: 0.89s
+[06:13:48] INFO: [Layer 34/36] Group 2: self_attn.o_proj
+[06:13:51] INFO:    Rank percent used: 98.22%
+[06:13:52] INFO:    [Metric] Relative prediction error: 0.145192
+[06:13:52] INFO:    self_attn.o_proj | Rank: 4023 | Time: 1.64s
+[06:13:53] INFO: [Layer 34/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:13:55] INFO:    Rank percent used: 99.73%
+[06:13:58] INFO:    [Metric] Relative prediction error: 0.131249
+[06:13:58] INFO:    mlp.gate_proj   | Rank: 4085 | Time: 2.72s
+[06:13:58] INFO:    Rank percent used: 99.73%
+[06:14:01] INFO:    [Metric] Relative prediction error: 0.154117
+[06:14:01] INFO:    mlp.up_proj     | Rank: 4085 | Time: 2.72s
+[06:14:01] INFO: [Layer 34/36] Group 4: mlp.down_proj
+[06:14:17] INFO:    Rank percent used: 99.57%
+[06:14:23] INFO:    [Metric] Relative prediction error: 0.193522
+[06:14:23] INFO:    mlp.down_proj   | Rank: 12235 | Time: 5.29s
+[06:14:24] INFO: [*] Layer 34/36 completed in 42.92s
+[06:14:24] INFO: [Layer 35/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:14:27] INFO:    Rank percent used: 99.61%
+[06:14:29] INFO:    [Metric] Relative prediction error: 0.092087
+[06:14:29] INFO:    self_attn.q_proj | Rank: 4080 | Time: 1.64s
+[06:14:29] INFO:    Rank percent used: 99.61%
+[06:14:30] INFO:    [Metric] Relative prediction error: 0.104222
+[06:14:30] INFO:    self_attn.k_proj | Rank: 4080 | Time: 0.90s
+[06:14:30] INFO:    Rank percent used: 99.61%
+[06:14:31] INFO:    [Metric] Relative prediction error: 0.198731
+[06:14:31] INFO:    self_attn.v_proj | Rank: 4080 | Time: 0.89s
+[06:14:31] INFO: [Layer 35/36] Group 2: self_attn.o_proj
+[06:14:34] INFO:    Rank percent used: 95.29%
+[06:14:35] INFO:    [Metric] Relative prediction error: 0.100785
+[06:14:35] INFO:    self_attn.o_proj | Rank: 3903 | Time: 1.64s
+[06:14:36] INFO: [Layer 35/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:14:38] INFO:    Rank percent used: 99.76%
+[06:14:41] INFO:    [Metric] Relative prediction error: 0.115221
+[06:14:41] INFO:    mlp.gate_proj   | Rank: 4086 | Time: 2.72s
+[06:14:41] INFO:    Rank percent used: 99.76%
+[06:14:44] INFO:    [Metric] Relative prediction error: 0.109749
+[06:14:44] INFO:    mlp.up_proj     | Rank: 4086 | Time: 2.72s
+[06:14:44] INFO: [Layer 35/36] Group 4: mlp.down_proj
+[06:15:00] INFO:    Rank percent used: 99.21%
+[06:15:05] INFO:    [Metric] Relative prediction error: 0.102146
+[06:15:05] INFO:    mlp.down_proj   | Rank: 12191 | Time: 5.28s
+[06:15:06] INFO: [*] Layer 35/36 completed in 42.31s
+[06:15:07] INFO: [Layer 36/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[06:15:10] INFO:    Rank percent used: 99.78%
+[06:15:11] INFO:    [Metric] Relative prediction error: 0.084990
+[06:15:11] INFO:    self_attn.q_proj | Rank: 4087 | Time: 1.64s
+[06:15:11] INFO:    Rank percent used: 99.78%
+[06:15:12] INFO:    [Metric] Relative prediction error: 0.093506
+[06:15:12] INFO:    self_attn.k_proj | Rank: 4087 | Time: 0.91s
+[06:15:12] INFO:    Rank percent used: 99.78%
+[06:15:13] INFO:    [Metric] Relative prediction error: 0.211939
+[06:15:13] INFO:    self_attn.v_proj | Rank: 4087 | Time: 0.89s
+[06:15:14] INFO: [Layer 36/36] Group 2: self_attn.o_proj
+[06:15:16] INFO:    Rank percent used: 97.66%
+[06:15:18] INFO:    [Metric] Relative prediction error: 0.112295
+[06:15:18] INFO:    self_attn.o_proj | Rank: 4000 | Time: 1.64s
+[06:15:18] INFO: [Layer 36/36] Group 3: mlp.gate_proj, mlp.up_proj
+[06:15:21] INFO:    Rank percent used: 99.71%
+[06:15:24] INFO:    [Metric] Relative prediction error: 0.082137
+[06:15:24] INFO:    mlp.gate_proj   | Rank: 4084 | Time: 2.72s
+[06:15:24] INFO:    Rank percent used: 99.71%
+[06:15:26] INFO:    [Metric] Relative prediction error: 0.094964
+[06:15:26] INFO:    mlp.up_proj     | Rank: 4084 | Time: 2.72s
+[06:15:27] INFO: [Layer 36/36] Group 4: mlp.down_proj
+[06:15:42] INFO:    Rank percent used: 93.61%
+[06:15:47] INFO:    [Metric] Relative prediction error: 0.083899
+[06:15:47] INFO:    mlp.down_proj   | Rank: 11503 | Time: 4.96s
+[06:15:49] INFO: [*] Layer 36/36 completed in 42.07s
+[06:15:49] INFO: 
+==================== COMPLETED ====================
+[06:15:49] INFO: Total processing time: 25.42 minutes
+[06:15:49] INFO: Skipping model weight save (--no_save was set).
+[06:15:49] INFO:   [>] Running final evaluation...
+[06:15:58] INFO:   [eval] Loading wikitext2...
+[06:16:00] INFO:   [eval] Dataset tokens: 299078 | Window: 2048 | Stride: 512
+[06:18:10] INFO: Final Quantized PPL: 9.8558

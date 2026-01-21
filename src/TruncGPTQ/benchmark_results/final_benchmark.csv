@@ -1,0 +1,12 @@
+algo,w_bits,group,sym,eps,ppl,time_s,status
+FP16,16,0,False,0.0,8.5723,149.9,Success
+GPTQ,4,128,False,0.0,8.7149,961.1,Success
+GPTQ,3,128,False,0.0,9.5937,969.1,Success
+GPTQ,2,128,False,0.0,24.8833,953.2,Success
+GPTQ,4,128,True,,8.8922,965.2,Success
+GPTQ,3,128,True,,10.2579,961.8,Success
+TruncGPTQ,4,128,False,1e-06,8.6452,1706.1,Success
+TruncGPTQ,3,128,False,0.0001,9.2056,1693.8,Success
+TruncGPTQ,2,128,False,1e-05,21.6318,1688.6,Success
+TruncGPTQ,4,128,True,0.0001,8.6613,1697.1,Success
+TruncGPTQ,3,128,True,0.0001,9.8558,1693.9,Success

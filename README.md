@@ -16,6 +16,7 @@ TruncGPTQ is a drop-in replacement for the "Hessian Inverse" step of GPTQ, requi
 2. Signal-preserving
 * GPTQ damping injects a small amount of noise to all signals
 * TruncGPTQ truncates only numerically meaningless signal
+* If $H = V \Lambda V^T$, keeps $\lambda_1,\ldots, \lambda_k$ such that $\lambda_1 + \cdots + \lambda_k \geq (1 - \epsilon) \mathrm{Tr}(H)$
 * Preserves dominant correlation structure in $H = X^TX$
 
 3. Rank-revealing ordering
@@ -24,21 +25,20 @@ TruncGPTQ is a drop-in replacement for the "Hessian Inverse" step of GPTQ, requi
 
 ## Benchmark Results (WikiText-2 test set Perplexity)
 *Evaluation performed on **Qwen3-8B**. Lower is better.*
-TBA
 
 | Method | Bit-Width | Mode | PPL | $\Delta$ vs FP16 |
 | :--- | :--- | :--- | :--- | :--- |
-| **FP16 Baseline** | 16-bit | - |  | - |
-| GPTQ | 4-bit | Asym |  | |
-| **TruncGPTQ** | 4-bit | Asym |  | |
-| GPTQ | 4-bit | Sym |  | |
-| **TruncGPTQ** | 4-bit | Sym |  |  |
-| GPTQ | 3-bit | Asym |  |  |
-| **TruncGPTQ** | 3-bit | Asym |  |  |
-| GPTQ | 3-bit | Sym |  |  |
-| **TruncGPTQ** | 3-bit | Sym |  | |
-| GPTQ | 2-bit | Asym |   |  |
-| **TruncGPTQ** | 2-bit | Asym |  | |
+| **FP16 Baseline** | 16-bit | - | 8.57 | - |
+| GPTQ | 4-bit | Asym | 8.71  | +0.14 |
+| **TruncGPTQ** | 4-bit | Asym | 8.65 | +0.08 |
+| GPTQ | 4-bit | Sym | 8.89  | +0.32 |
+| **TruncGPTQ** | 4-bit | Sym | 8.66 | +0.09 |
+| GPTQ | 3-bit | Asym | 9.59  | +1.02 |
+| **TruncGPTQ** | 3-bit | Asym | 9.21 | +0.62 |
+| GPTQ | 3-bit | Sym | 10.26  | +1.69 |
+| **TruncGPTQ** | 3-bit | Sym | 9.86 | +1.31|
+| GPTQ | 2-bit | Asym | 24.88  | +16.31  |
+| **TruncGPTQ** | 2-bit | Asym | 21.63  | +13.06 |
 
 
 ### Comparison of Standard GPTQ vs TruncGPTQ
@@ -46,7 +46,7 @@ TBA
 | Feature | Standard GPTQ | **TruncGPTQ** (Ours) |
 | :--- | :--- | :--- |
 | **Matrix Decomposition** | Cholesky ($LL^T$) | Truncated spectral decomposition |
-| **Stability Strategy** | Damping ($H + \lambda I$) | Hard Truncation |
+| **Stability Strategy** | Damping ($H + \lambda I$) | Hard Truncation (rank reduction) |
 | **Numerics** | Adds noise to all features | Preserves signal, ignores noise |
 | **Column Selection** | Actorder (norm-based) | Pivoted QR (Rank-based) |
 
@@ -80,7 +80,10 @@ The aim of TruncGPTQ is to identify the true rank of $H$ and discard the noise.
 
 $$ H = V\Lambda V^T $$
 
-2. **Truncation:** Set $\lambda_i = 0$ for all eigenvalues below a threshold. This creates a cleaned diagonal $\tilde{\Lambda}$.
+2. **Truncation:** Keep eigenvalues $\lambda_1,\ldots, \lambda_k$ such that
+
+$$ \lambda_1 + \cdots + \lambda_k \geq (1 - \epsilon)(\lambda_1 + \cdots + \lambda_n) $$
+
 3. **Square Root Representation:** We construct a matrix $S$ that represents the square root of the cleaned Hessian:
 
 $$ S = \tilde{\Lambda}^{1/2} V^T. $$
@@ -121,6 +124,7 @@ python TruncGPTQ/src/TruncGPTQ/run_benchmark.py
 * Model Support: Development has been focused on **Qwen3-8B** architecture.
 * Statistical Significance: Results reflect single-run experiments. Median results over multiple seeds are pending.
 * Computational Cost: The quantization process uses Eigendecomposition (torch.eigh), once, one QR with pivoting, and one regular QR, as opposed to two Cholesky factorizations for GPTQ. This makes it about 1.5X slower than regular GPTQ. This has zero impact on inference speed.
+* The truncation tolerance $\epsilon$ is selected from a small logarithmic grid.
 
 ## Roadmap: Future developments
 - [ ] Support for saving quantized weights (compatible with AutoGPTQ/vLLM)

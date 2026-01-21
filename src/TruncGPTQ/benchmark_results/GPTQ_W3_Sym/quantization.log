@@ -1,0 +1,455 @@
+[03:40:55] INFO: 
+==================== INITIALIZING QUANTIZATION ====================
+[03:40:55] INFO: Model:  Qwen/Qwen3-8B
+[03:40:55] INFO: Mode:   GPTQ
+[03:40:55] INFO: Params: Bits=3, Group=128, Eps=0.01
+[03:40:55] INFO: Loading Qwen/Qwen3-8B...
+[03:40:55] INFO: [MODEL] Using Flash attention 2
+[03:41:02] INFO:   [>] Loading dataset: wikitext2
+[03:41:02] INFO: Loading wikitext2... (total samples: 128)
+[03:41:15] INFO: [DATA] Full dataset tokens: 2518423
+[03:41:16] INFO: [DATA] Collected 128 random batches of length 2048.
+[03:41:16] INFO:   [>] Capturing initial activations...
+[03:41:16] INFO: Capturing calibration inputs...
+[03:41:17] INFO: 
+==================== PIPELINE: GPTQ ====================
+[03:41:17] INFO: [Layer 1/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:41:20] INFO:    self_attn.q_proj | Rank: N/A  | Time: 1.00s
+[03:41:21] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.90s
+[03:41:22] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:41:22] INFO: [Layer 1/36] Group 2: self_attn.o_proj
+[03:41:24] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.89s
+[03:41:25] INFO: [Layer 1/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:41:27] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:41:28] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.92s
+[03:41:28] INFO: [Layer 1/36] Group 4: mlp.down_proj
+[03:41:37] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.71s
+[03:41:39] INFO: [*] Layer 1/36 completed in 22.15s
+[03:41:39] INFO: [Layer 2/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:41:41] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:41:42] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:41:44] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:41:44] INFO: [Layer 2/36] Group 2: self_attn.o_proj
+[03:41:46] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:41:46] INFO: [Layer 2/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:41:49] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.93s
+[03:41:50] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:41:50] INFO: [Layer 2/36] Group 4: mlp.down_proj
+[03:41:59] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.69s
+[03:42:00] INFO: [*] Layer 2/36 completed in 21.43s
+[03:42:01] INFO: [Layer 3/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:42:03] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.91s
+[03:42:04] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:42:05] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:42:05] INFO: [Layer 3/36] Group 2: self_attn.o_proj
+[03:42:08] INFO:    self_attn.o_proj | Rank: N/A  | Time: 1.06s
+[03:42:08] INFO: [Layer 3/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:42:11] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:42:12] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:42:12] INFO: [Layer 3/36] Group 4: mlp.down_proj
+[03:42:21] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.66s
+[03:42:22] INFO: [*] Layer 3/36 completed in 21.68s
+[03:42:22] INFO: [Layer 4/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:42:25] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:42:26] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:42:27] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:42:27] INFO: [Layer 4/36] Group 2: self_attn.o_proj
+[03:42:30] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:42:30] INFO: [Layer 4/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:42:32] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:42:33] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:42:34] INFO: [Layer 4/36] Group 4: mlp.down_proj
+[03:42:43] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:42:44] INFO: [*] Layer 4/36 completed in 21.60s
+[03:42:44] INFO: [Layer 5/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:42:47] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:42:48] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.92s
+[03:42:49] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:42:49] INFO: [Layer 5/36] Group 2: self_attn.o_proj
+[03:42:52] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:42:52] INFO: [Layer 5/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:42:54] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:42:55] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:42:56] INFO: [Layer 5/36] Group 4: mlp.down_proj
+[03:43:05] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.78s
+[03:43:06] INFO: [*] Layer 5/36 completed in 21.79s
+[03:43:06] INFO: [Layer 6/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:43:09] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.92s
+[03:43:10] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.92s
+[03:43:11] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:43:11] INFO: [Layer 6/36] Group 2: self_attn.o_proj
+[03:43:14] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.91s
+[03:43:14] INFO: [Layer 6/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:43:16] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.92s
+[03:43:18] INFO:    mlp.up_proj     | Rank: N/A  | Time: 1.07s
+[03:43:18] INFO: [Layer 6/36] Group 4: mlp.down_proj
+[03:43:27] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.71s
+[03:43:28] INFO: [*] Layer 6/36 completed in 22.39s
+[03:43:29] INFO: [Layer 7/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:43:31] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.93s
+[03:43:33] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.96s
+[03:43:34] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:43:34] INFO: [Layer 7/36] Group 2: self_attn.o_proj
+[03:43:36] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.91s
+[03:43:37] INFO: [Layer 7/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:43:39] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.93s
+[03:43:40] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:43:41] INFO: [Layer 7/36] Group 4: mlp.down_proj
+[03:43:50] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.69s
+[03:43:51] INFO: [*] Layer 7/36 completed in 22.36s
+[03:43:51] INFO: [Layer 8/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:43:54] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:43:55] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:43:56] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:43:56] INFO: [Layer 8/36] Group 2: self_attn.o_proj
+[03:43:59] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:43:59] INFO: [Layer 8/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:44:01] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:44:02] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.92s
+[03:44:03] INFO: [Layer 8/36] Group 4: mlp.down_proj
+[03:44:12] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.67s
+[03:44:13] INFO: [*] Layer 8/36 completed in 21.83s
+[03:44:13] INFO: [Layer 9/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:44:16] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.91s
+[03:44:17] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:44:18] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:44:18] INFO: [Layer 9/36] Group 2: self_attn.o_proj
+[03:44:21] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:44:21] INFO: [Layer 9/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:44:23] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.94s
+[03:44:25] INFO:    mlp.up_proj     | Rank: N/A  | Time: 1.01s
+[03:44:25] INFO: [Layer 9/36] Group 4: mlp.down_proj
+[03:44:34] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:44:35] INFO: [*] Layer 9/36 completed in 22.07s
+[03:44:36] INFO: [Layer 10/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:44:38] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.88s
+[03:44:39] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:44:40] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:44:40] INFO: [Layer 10/36] Group 2: self_attn.o_proj
+[03:44:43] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:44:43] INFO: [Layer 10/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:44:45] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:44:46] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:44:47] INFO: [Layer 10/36] Group 4: mlp.down_proj
+[03:44:56] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:44:57] INFO: [*] Layer 10/36 completed in 21.76s
+[03:44:58] INFO: [Layer 11/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:45:00] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.98s
+[03:45:01] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.90s
+[03:45:02] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:45:02] INFO: [Layer 11/36] Group 2: self_attn.o_proj
+[03:45:05] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:45:05] INFO: [Layer 11/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:45:08] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:45:09] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:45:09] INFO: [Layer 11/36] Group 4: mlp.down_proj
+[03:45:18] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.65s
+[03:45:19] INFO: [*] Layer 11/36 completed in 21.98s
+[03:45:20] INFO: [Layer 12/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:45:22] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:45:23] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:45:24] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:45:24] INFO: [Layer 12/36] Group 2: self_attn.o_proj
+[03:45:27] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.89s
+[03:45:27] INFO: [Layer 12/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:45:30] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:45:31] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:45:31] INFO: [Layer 12/36] Group 4: mlp.down_proj
+[03:45:40] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.69s
+[03:45:41] INFO: [*] Layer 12/36 completed in 21.87s
+[03:45:42] INFO: [Layer 13/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:45:44] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:45:45] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:45:46] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:45:46] INFO: [Layer 13/36] Group 2: self_attn.o_proj
+[03:45:49] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:45:49] INFO: [Layer 13/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:45:52] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:45:53] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:45:53] INFO: [Layer 13/36] Group 4: mlp.down_proj
+[03:46:02] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:46:03] INFO: [*] Layer 13/36 completed in 21.86s
+[03:46:04] INFO: [Layer 14/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:46:06] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:46:07] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.90s
+[03:46:08] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:46:08] INFO: [Layer 14/36] Group 2: self_attn.o_proj
+[03:46:11] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:46:11] INFO: [Layer 14/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:46:14] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:46:15] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:46:15] INFO: [Layer 14/36] Group 4: mlp.down_proj
+[03:46:24] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.67s
+[03:46:25] INFO: [*] Layer 14/36 completed in 21.75s
+[03:46:26] INFO: [Layer 15/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:46:28] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:46:29] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:46:30] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:46:30] INFO: [Layer 15/36] Group 2: self_attn.o_proj
+[03:46:33] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.89s
+[03:46:33] INFO: [Layer 15/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:46:35] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:46:36] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:46:37] INFO: [Layer 15/36] Group 4: mlp.down_proj
+[03:46:46] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:46:47] INFO: [*] Layer 15/36 completed in 21.73s
+[03:46:47] INFO: [Layer 16/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:46:50] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:46:51] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:46:52] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:46:52] INFO: [Layer 16/36] Group 2: self_attn.o_proj
+[03:46:55] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:46:55] INFO: [Layer 16/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:46:57] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:46:58] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:46:59] INFO: [Layer 16/36] Group 4: mlp.down_proj
+[03:47:08] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.71s
+[03:47:09] INFO: [*] Layer 16/36 completed in 21.93s
+[03:47:10] INFO: [Layer 17/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:47:12] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.94s
+[03:47:13] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.92s
+[03:47:14] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:47:14] INFO: [Layer 17/36] Group 2: self_attn.o_proj
+[03:47:17] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.91s
+[03:47:17] INFO: [Layer 17/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:47:19] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:47:21] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:47:21] INFO: [Layer 17/36] Group 4: mlp.down_proj
+[03:47:30] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.74s
+[03:47:31] INFO: [*] Layer 17/36 completed in 21.91s
+[03:47:32] INFO: [Layer 18/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:47:34] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:47:35] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.90s
+[03:47:36] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.95s
+[03:47:36] INFO: [Layer 18/36] Group 2: self_attn.o_proj
+[03:47:39] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.92s
+[03:47:39] INFO: [Layer 18/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:47:42] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.95s
+[03:47:43] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.93s
+[03:47:43] INFO: [Layer 18/36] Group 4: mlp.down_proj
+[03:47:52] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.65s
+[03:47:53] INFO: [*] Layer 18/36 completed in 21.99s
+[03:47:54] INFO: [Layer 19/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:47:56] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:47:57] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:47:58] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:47:59] INFO: [Layer 19/36] Group 2: self_attn.o_proj
+[03:48:01] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:48:01] INFO: [Layer 19/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:48:04] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:48:05] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:48:05] INFO: [Layer 19/36] Group 4: mlp.down_proj
+[03:48:14] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.67s
+[03:48:15] INFO: [*] Layer 19/36 completed in 21.82s
+[03:48:16] INFO: [Layer 20/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:48:18] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:48:19] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:48:20] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:48:20] INFO: [Layer 20/36] Group 2: self_attn.o_proj
+[03:48:23] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:48:23] INFO: [Layer 20/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:48:26] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:48:27] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:48:27] INFO: [Layer 20/36] Group 4: mlp.down_proj
+[03:48:36] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:48:37] INFO: [*] Layer 20/36 completed in 21.80s
+[03:48:38] INFO: [Layer 21/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:48:40] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:48:41] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:48:42] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:48:42] INFO: [Layer 21/36] Group 2: self_attn.o_proj
+[03:48:45] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.93s
+[03:48:45] INFO: [Layer 21/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:48:48] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.92s
+[03:48:49] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.93s
+[03:48:49] INFO: [Layer 21/36] Group 4: mlp.down_proj
+[03:48:58] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.65s
+[03:48:59] INFO: [*] Layer 21/36 completed in 21.93s
+[03:49:00] INFO: [Layer 22/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:49:02] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:49:03] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:49:04] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:49:04] INFO: [Layer 22/36] Group 2: self_attn.o_proj
+[03:49:07] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:49:07] INFO: [Layer 22/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:49:10] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:49:11] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.89s
+[03:49:11] INFO: [Layer 22/36] Group 4: mlp.down_proj
+[03:49:20] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:49:21] INFO: [*] Layer 22/36 completed in 21.73s
+[03:49:22] INFO: [Layer 23/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:49:24] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:49:25] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:49:26] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:49:26] INFO: [Layer 23/36] Group 2: self_attn.o_proj
+[03:49:29] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:49:29] INFO: [Layer 23/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:49:32] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:49:33] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:49:33] INFO: [Layer 23/36] Group 4: mlp.down_proj
+[03:49:42] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:49:43] INFO: [*] Layer 23/36 completed in 21.80s
+[03:49:44] INFO: [Layer 24/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:49:46] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:49:47] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:49:48] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:49:48] INFO: [Layer 24/36] Group 2: self_attn.o_proj
+[03:49:51] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.89s
+[03:49:51] INFO: [Layer 24/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:49:53] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:49:54] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:49:55] INFO: [Layer 24/36] Group 4: mlp.down_proj
+[03:50:04] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:50:05] INFO: [*] Layer 24/36 completed in 21.77s
+[03:50:05] INFO: [Layer 25/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:50:08] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:50:09] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.90s
+[03:50:10] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:50:10] INFO: [Layer 25/36] Group 2: self_attn.o_proj
+[03:50:13] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:50:13] INFO: [Layer 25/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:50:15] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:50:16] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:50:17] INFO: [Layer 25/36] Group 4: mlp.down_proj
+[03:50:26] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:50:27] INFO: [*] Layer 25/36 completed in 21.86s
+[03:50:27] INFO: [Layer 26/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:50:30] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:50:31] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.90s
+[03:50:32] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:50:32] INFO: [Layer 26/36] Group 2: self_attn.o_proj
+[03:50:35] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:50:35] INFO: [Layer 26/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:50:37] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:50:38] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:50:39] INFO: [Layer 26/36] Group 4: mlp.down_proj
+[03:50:48] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:50:49] INFO: [*] Layer 26/36 completed in 21.84s
+[03:50:49] INFO: [Layer 27/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:50:52] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:50:53] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:50:54] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:50:54] INFO: [Layer 27/36] Group 2: self_attn.o_proj
+[03:50:57] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:50:57] INFO: [Layer 27/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:50:59] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:51:00] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:51:01] INFO: [Layer 27/36] Group 4: mlp.down_proj
+[03:51:10] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:51:11] INFO: [*] Layer 27/36 completed in 21.76s
+[03:51:11] INFO: [Layer 28/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:51:14] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:51:15] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:51:16] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:51:16] INFO: [Layer 28/36] Group 2: self_attn.o_proj
+[03:51:19] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:51:19] INFO: [Layer 28/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:51:21] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:51:22] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:51:23] INFO: [Layer 28/36] Group 4: mlp.down_proj
+[03:51:32] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:51:33] INFO: [*] Layer 28/36 completed in 21.90s
+[03:51:33] INFO: [Layer 29/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:51:36] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:51:37] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:51:38] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:51:38] INFO: [Layer 29/36] Group 2: self_attn.o_proj
+[03:51:41] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:51:41] INFO: [Layer 29/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:51:43] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:51:44] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:51:45] INFO: [Layer 29/36] Group 4: mlp.down_proj
+[03:51:54] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.71s
+[03:51:55] INFO: [*] Layer 29/36 completed in 21.91s
+[03:51:55] INFO: [Layer 30/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:51:58] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.92s
+[03:51:59] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:52:00] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:52:00] INFO: [Layer 30/36] Group 2: self_attn.o_proj
+[03:52:03] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.91s
+[03:52:03] INFO: [Layer 30/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:52:05] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:52:07] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:52:07] INFO: [Layer 30/36] Group 4: mlp.down_proj
+[03:52:16] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.67s
+[03:52:17] INFO: [*] Layer 30/36 completed in 21.89s
+[03:52:18] INFO: [Layer 31/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:52:20] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:52:21] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:52:22] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:52:22] INFO: [Layer 31/36] Group 2: self_attn.o_proj
+[03:52:25] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.89s
+[03:52:25] INFO: [Layer 31/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:52:27] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.89s
+[03:52:28] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:52:29] INFO: [Layer 31/36] Group 4: mlp.down_proj
+[03:52:38] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.66s
+[03:52:39] INFO: [*] Layer 31/36 completed in 21.73s
+[03:52:39] INFO: [Layer 32/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:52:42] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:52:43] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:52:44] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:52:44] INFO: [Layer 32/36] Group 2: self_attn.o_proj
+[03:52:47] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:52:47] INFO: [Layer 32/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:52:49] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.89s
+[03:52:50] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:52:51] INFO: [Layer 32/36] Group 4: mlp.down_proj
+[03:53:00] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.69s
+[03:53:01] INFO: [*] Layer 32/36 completed in 21.80s
+[03:53:01] INFO: [Layer 33/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:53:04] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:53:05] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:53:06] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:53:06] INFO: [Layer 33/36] Group 2: self_attn.o_proj
+[03:53:09] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:53:09] INFO: [Layer 33/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:53:11] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:53:12] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:53:13] INFO: [Layer 33/36] Group 4: mlp.down_proj
+[03:53:22] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.69s
+[03:53:23] INFO: [*] Layer 33/36 completed in 21.80s
+[03:53:23] INFO: [Layer 34/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:53:26] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:53:27] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:53:28] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.90s
+[03:53:28] INFO: [Layer 34/36] Group 2: self_attn.o_proj
+[03:53:31] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.92s
+[03:53:31] INFO: [Layer 34/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:53:33] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.91s
+[03:53:34] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.91s
+[03:53:35] INFO: [Layer 34/36] Group 4: mlp.down_proj
+[03:53:43] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.66s
+[03:53:45] INFO: [*] Layer 34/36 completed in 21.85s
+[03:53:45] INFO: [Layer 35/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:53:48] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.90s
+[03:53:49] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.89s
+[03:53:50] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.89s
+[03:53:50] INFO: [Layer 35/36] Group 2: self_attn.o_proj
+[03:53:52] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:53:53] INFO: [Layer 35/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:53:55] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:53:56] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:53:57] INFO: [Layer 35/36] Group 4: mlp.down_proj
+[03:54:05] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.68s
+[03:54:07] INFO: [*] Layer 35/36 completed in 21.83s
+[03:54:07] INFO: [Layer 36/36] Group 1: self_attn.q_proj, self_attn.k_proj, self_attn.v_proj
+[03:54:10] INFO:    self_attn.q_proj | Rank: N/A  | Time: 0.89s
+[03:54:11] INFO:    self_attn.k_proj | Rank: N/A  | Time: 0.88s
+[03:54:12] INFO:    self_attn.v_proj | Rank: N/A  | Time: 0.88s
+[03:54:12] INFO: [Layer 36/36] Group 2: self_attn.o_proj
+[03:54:14] INFO:    self_attn.o_proj | Rank: N/A  | Time: 0.90s
+[03:54:15] INFO: [Layer 36/36] Group 3: mlp.gate_proj, mlp.up_proj
+[03:54:17] INFO:    mlp.gate_proj   | Rank: N/A  | Time: 0.90s
+[03:54:18] INFO:    mlp.up_proj     | Rank: N/A  | Time: 0.90s
+[03:54:18] INFO: [Layer 36/36] Group 4: mlp.down_proj
+[03:54:27] INFO:    mlp.down_proj   | Rank: N/A  | Time: 2.66s
+[03:54:29] INFO: [*] Layer 36/36 completed in 21.73s
+[03:54:29] INFO: 
+==================== COMPLETED ====================
+[03:54:29] INFO: Total processing time: 13.21 minutes
+[03:54:29] INFO: Skipping model weight save (--no_save was set).
+[03:54:29] INFO:   [>] Running final evaluation...
+[03:54:37] INFO:   [eval] Loading wikitext2...
+[03:54:40] INFO:   [eval] Dataset tokens: 299078 | Window: 2048 | Stride: 512
+[03:56:51] INFO: Final Quantized PPL: 10.2579
