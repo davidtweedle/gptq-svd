@@ -186,7 +186,7 @@ def capture_initial_inputs(
 
     layers[0] = Catcher(layers[0])
     for i in range(0, n_samples, batch_size):
-        batch = input_ids_tensor[i: i + batch_size].to(model_device)
+        batch = input_ids_tensor[i: i + batch_size].to(device)
         try:
             model(batch)
         except ValueError:
