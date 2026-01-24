@@ -10,7 +10,12 @@ from torch import nn
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer
 from typing import Tuple, List, Dict, Any
 import logging
+import gc
 
+
+def cleanup():
+    gc.collect()
+    torch.cuda.empty_cache()
 
 def prepare_batch_kwargs(v, device):
     if isinstance(v, torch.Tensor):
