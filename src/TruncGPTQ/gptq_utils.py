@@ -304,7 +304,7 @@ def gptq_cross_kernel(
         stride_e_row, stride_e_col,
         stride_r_row, stride_r_col,
         stride_d,
-        n_rows, n_target_cols,
+        n_rows, n_src_cols, n_target_cols,
         BLOCK_ROWS: tl.constexpr,
         BLOCK_SRC: tl.constexpr,
         BLOCK_DST: tl.constexpr
@@ -318,19 +318,24 @@ def gptq_cross_kernel(
 
     row_mask = rows < n_rows
     col_mask = dst_cols < n_target_cols
+    src_mask = src_cols < n_src_cols
 
     E = tl.load(
             E_ptr + rows[:, None] * stride_e_row + src_cols[None, :] * stride_e_col,
-            mask=row_mask[:, None],
+            mask=row_mask[:, None] & src_mask[None, :],
             other=0.0,
             )
 
-    D = tl.load(D_ptr + src_cols * stride_d)
+    D = tl.load(
+            D_ptr + src_cols * stride_d,
+            mask=src_mask,
+            other=1.0
+            )
     D_inv = 1.0 / D
 
     H = tl.load(
             R_ptr + src_cols[:, None] * stride_r_row + dst_cols[None, :] * stride_r_col,
-            mask=col_mask[None, :],
+            mask=src_mask[:, None] & col_mask[None, :],
             other=0.0,
             )
 
@@ -477,6 +482,7 @@ def triton_process_cross_block(
             R_pad.stride(0), R_pad.stride(1),
             D_pad.stride(0),
             out_features,
+            src_padded,
             n_dst,
             BLOCK_ROWS=BLOCK_ROWS,
             BLOCK_SRC=src_padded,
@@ -633,7 +639,7 @@ def gptq_fwrd(
                 if use_triton:
                     H_inv_sqrt_cross = H_inv_sqrt[i1:i2, i2:]
                     diag_vals = torch.diagonal(Hinv1)
-                    triton_process_cross_block(W, E_block, H_inv_sqrt_cross, diag_vals)
+                    triton_process_cross_block(W[:, i2:], E_block, H_inv_sqrt_cross, diag_vals)
                 else:
                     Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
                     W[:, i2:] -= Global_delta
