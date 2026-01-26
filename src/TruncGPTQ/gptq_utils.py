@@ -523,7 +523,7 @@ def triton_process_block(
     q_output = torch.empty_like(w_input)
     e_output = torch.empty_like(w_input)
 
-    BLOCK_ROWS = 64
+    BLOCK_ROWS = 32
     grid = lambda meta: (triton.cdiv(out_features, BLOCK_ROWS),)
 
     # add scales and zeros stride, etc.
@@ -639,10 +639,11 @@ def gptq_fwrd(
                 if use_triton:
                     H_inv_sqrt_cross = H_inv_sqrt[i1:i2, i2:]
                     diag_vals = torch.diagonal(Hinv1)
-                    triton_process_cross_block(W[:, i2:], E_block, H_inv_sqrt_cross, diag_vals)
+                    Scale_mat = H_inv_sqrt_cross / diag_vals.unsqueeze(1)
+                    Global_delta = E_block @ Scale_mat
                 else:
                     Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
-                    W[:, i2:] -= Global_delta
+                W[:, i2:] -= Global_delta
 
         if current_rank < in_features:
             W_tail = W[:, current_rank:]
