@@ -35,7 +35,7 @@ def evaluate_perplexity(
     logger.info(f"  [eval] Loading {dataset}...")
 
     if dataset == "wikitext2":
-        testdata = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
+        testdata = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="test")
         text = "\n\n".join(testdata["text"])
     else:
         return -1

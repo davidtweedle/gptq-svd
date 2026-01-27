@@ -55,7 +55,7 @@ def get_wikitext2(
     Loads wikitext2 and selects random chunks for calibration.
     """
     logging.info(f"Loading wikitext2... (total samples: {n_samples})")
-    data = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+    data = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
 
     # merge into one massive string
     text = "\n\n".join(data["text"])
