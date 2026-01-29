@@ -407,7 +407,6 @@ def gptq_block_kernel(
         q_int = tl.clamp(q_int, float(MIN_VAL), float(MAX_VAL))
         q_val = (q_int - z_col) * s_col
 
-        error = w_col - q_val
 
         # Write output and error
         e_out_ptrs = E_ptr + (offsets_rows * stride_e_row) + (k * stride_e_col)
@@ -426,11 +425,11 @@ def gptq_block_kernel(
         inv_diag = 1.0 / diag
         # better to have r_row / diag ?
 
-        correction_vec = r_row * inv_diag
+        error = (w_col - q_val) * inv_diag
 
         # error propogation
         err_broad = error[:, None]
-        corr_broad = correction_vec[None, :]
+        corr_broad = r_row[None, :]
         delta = err_broad * corr_broad
 
         # apply update to future columns
