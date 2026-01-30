@@ -118,10 +118,11 @@ def process_hessian_alt(
     H_inv_partial = S_inv.unsqueeze(1) * Vh
     H_inv_permuted = H_inv_partial[:, perm]
     _, R_prime = torch.linalg.qr(H_inv_permuted, mode='reduced')
-    diag_sign = torch.sign(torch.diagonal(R_prime))
+    # diag_sign = torch.sign(torch.diagonal(R_prime))
+    diag = torch.diagonal(R_prime)
     diag_sign_x = torch.sign(torch.diagonal(R_x))
     R_x = R_x * diag_sign_x.unsqueeze(1)
-    R = R_prime * diag_sign.unsqueeze(1)
+    R = R_prime / diag.unsqueeze(1)
 
     return R, R_x, perm
 
@@ -232,10 +233,11 @@ class Quantizer:
     Simple pseudo quantizer.
     Calculates scales based on max of absolute values of weights.
     """
-    def __init__(self, w_bits: int = 4, group_size: int = 128, sym: bool = False):
+    def __init__(self, w_bits: int = 4, group_size: int = 128, sym: bool = False, beta: float = 1.0):
         self.w_bits = w_bits
         self.group_size = group_size
         self.sym = sym
+        self.beta = beta
         if self.sym:
             half_range = 2 ** (w_bits - 1) - 1
             self.max_q = half_range
@@ -256,8 +258,9 @@ class Quantizer:
 
         if self.sym:
             x_abs_max = torch.amax(torch.abs(w), dim=2, keepdim=True)
-            x_abs_max = x_abs_max.clamp(min=1e-5)
-            self.scale = x_abs_max / self.max_q
+            clipped_max = x_abs_max * self.beta
+            clipped_max = clipped_max.clamp(min=1e-5)
+            self.scale = clipped_max / self.max_q
             self.zero = torch.zeros_like(self.scale)
         else:
             mn = torch.amin(w, dim=2, keepdim=True)
@@ -294,59 +297,6 @@ def log_quantization_error(
 # ==============================================================================
 # TRITON KERNELS
 # ==============================================================================
-@triton.jit
-def gptq_cross_kernel(
-        W_ptr,
-        E_ptr,
-        R_ptr,
-        D_ptr,
-        stride_w_row, stride_w_col,
-        stride_e_row, stride_e_col,
-        stride_r_row, stride_r_col,
-        stride_d,
-        n_rows, n_src_cols, n_target_cols,
-        BLOCK_ROWS: tl.constexpr,
-        BLOCK_SRC: tl.constexpr,
-        BLOCK_DST: tl.constexpr
-        ):
-    pid_row = tl.program_id(0)
-    pid_col = tl.program_id(1)
-
-    rows = pid_row * BLOCK_ROWS + tl.arange(0, BLOCK_ROWS)
-    dst_cols = pid_col * BLOCK_DST + tl.arange(0, BLOCK_DST)
-    src_cols = tl.arange(0, BLOCK_SRC)
-
-    row_mask = rows < n_rows
-    col_mask = dst_cols < n_target_cols
-    src_mask = src_cols < n_src_cols
-
-    E = tl.load(
-            E_ptr + rows[:, None] * stride_e_row + src_cols[None, :] * stride_e_col,
-            mask=row_mask[:, None] & src_mask[None, :],
-            other=0.0,
-            )
-
-    D = tl.load(
-            D_ptr + src_cols * stride_d,
-            mask=src_mask,
-            other=1.0
-            )
-    D_inv = 1.0 / D
-
-    H = tl.load(
-            R_ptr + src_cols[:, None] * stride_r_row + dst_cols[None, :] * stride_r_col,
-            mask=src_mask[:, None] & col_mask[None, :],
-            other=0.0,
-            )
-
-    H = H * D_inv[:, None]
-
-    delta = tl.dot(E, H)
-
-    W_ptrs = W_ptr + rows[:, None] * stride_w_row + dst_cols[None, :] * stride_w_col
-    W = tl.load(W_ptrs, mask=row_mask[:, None] & col_mask[None, :], other=0.0)
-    tl.store(W_ptrs, W - delta, mask=row_mask[:, None] & col_mask[None, :])
-
 @triton.jit
 def gptq_block_kernel(
         W_ptr,
@@ -419,10 +369,11 @@ def gptq_block_kernel(
         r_row = tl.load(r_ptrs)
 
         # diagonal element for scaling
-        diag_mask = (offsets_cols == k)
-        diag = tl.sum(r_row * diag_mask, axis=0)
+        #diag_mask = (offsets_cols == k)
+        #diag = tl.sum(r_row * diag_mask, axis=0)
 
-        error = (w_col - q_val) / diag
+        #error = (w_col - q_val) / diag
+        error = w_col - q_val
         tl.store(e_out_ptrs, error, mask=mask_rows)
 
         # error propogation
@@ -437,55 +388,6 @@ def gptq_block_kernel(
 
 def next_power_of_2(x: int) -> int:
     return 1 if x == 0 else 2 ** (x - 1).bit_length()
-
-def triton_process_cross_block(
-        W: torch.Tensor,
-        E: torch.Tensor,
-        R: torch.Tensor,
-        D: torch.Tensor,
-        BLOCK_ROWS=64,
-        BLOCK_SRC=128,
-        BLOCK_DST=128,
-        ):
-    out_features, n_dst = W.shape
-    _, n_src = E.shape
-
-    src_padded = next_power_of_2(n_src)
-    if src_padded < 16:
-        src_padded = 16
-
-    pad = src_padded - n_src
-    if pad > 0:
-        E_pad = torch.nn.functional.pad(E, (0, pad), value=0.0)
-        R_pad = torch.nn.functional.pad(R, (0, 0, 0, pad), value=0.0)
-        D_pad = torch.nn.functional.pad(D, (0, pad), value=1.0)
-    else:
-        E_pad = E
-        R_pad = R
-        D_pad = D
-
-    grid = lambda meta: (
-            triton.cdiv(out_features, BLOCK_ROWS),
-            triton.cdiv(n_dst, BLOCK_DST),
-            )
-
-    gptq_cross_kernel[grid](
-            W,
-            E_pad,
-            R_pad,
-            D_pad,
-            W.stride(0), W.stride(1),
-            E_pad.stride(0), E_pad.stride(1),
-            R_pad.stride(0), R_pad.stride(1),
-            D_pad.stride(0),
-            out_features,
-            src_padded,
-            n_dst,
-            BLOCK_ROWS=BLOCK_ROWS,
-            BLOCK_SRC=src_padded,
-            BLOCK_DST=BLOCK_DST,
-            )
-
 
 
 def triton_process_block(
@@ -614,7 +516,7 @@ def gptq_fwrd(
             else:
                 Q1 = torch.zeros_like(W1)
                 Err1 = torch.zeros_like(W1)
-                
+
                 for i in range(count):
                     w = W1[:, i]
                     d = Hinv1[i, i]
@@ -633,13 +535,7 @@ def gptq_fwrd(
             Q_final[:, i1:i2] = w_block_quantized
 
             if i2 < in_features:
-#                if use_triton:
-#                    H_inv_sqrt_cross = H_inv_sqrt[i1:i2, i2:]
-#                    diag_vals = torch.diagonal(Hinv1)
-#                    Scale_mat = H_inv_sqrt_cross / diag_vals.unsqueeze(1)
-#                    Global_delta = E_block @ Scale_mat
-#                else:
-                Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
+                Global_delta = E_block @ H_inv_sqrt[i1:i2, i2:]
                 W[:, i2:] -= Global_delta
 
         if current_rank < in_features:
