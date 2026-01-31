@@ -539,7 +539,7 @@ def gptq_fwrd(
             if i2 < in_features:
                 E_dbl = E_block.to(dtype=torch.float64)
                 H_slice_dbl = H_inv_sqrt[i1:i2, i2:]
-                Global_delta = torch.matmul(E_dbl, H_slic_dbl)
+                Global_delta = torch.matmul(E_dbl, H_slice_dbl)
                 W[:, i2:] -= Global_delta.to(dtype=torch.float32)
 
         if current_rank < in_features:
