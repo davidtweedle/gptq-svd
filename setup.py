@@ -1,35 +1,40 @@
 from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
-import os, torch
+import os
+import torch
 
-torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
+this_dir = os.path.dirname(os.path.abspath(__file__))
+csrc_path = os.path.join(this_dir, "csrc")
 
-extra_link_args = [f"-Wl,-rpath,{torch_lib}"]
+torch_dir = os.path.dirname(torch.__file__)
+torch_lib = os.path.join(torch_dir, "lib")
 
-csrc_path = "csrc"
+extra_link_args = [
+        f"-Wl,-rpath,{torch_lib}",
+        "-Wl,-rpath,$ORIGIN"
+        ]
+
+ext = CUDAExtension(
+        name="TruncGPTQ._C",
+        sources=[
+            os.path.join("csrc", "binding.cpp"),
+            os.path.join("csrc", "gptq_kernel.cu"),
+            ],
+        include_dirs=[csrc_path],
+        library_dirs=[torch_lib],
+        extra_compile_args={
+            "cxx": ["-O3"],
+            "nvcc": ["-O3", "--use_fast_math"],
+            },
+        )
+
 
 setup(
-        name="TruncGPTQ",
+        name="truncgptq",
         version="0.1.0",
         packages=find_packages(where="src"),
         package_dir={"": "src"},
-        ext_modules=[
-            CUDAExtension(
-                name="TruncGPTQ._C",
-                sources=[
-                    os.path.join(csrc_path, "binding.cpp"),
-                    os.path.join(csrc_path, "gptq_kernel.cu"),
-                    ],
-                extra_link_args=extra_link_args,
-                extra_compile_args={
-                    "cxx": ["-O3"],
-                    "nvcc": [
-                        "-O3",
-                        "--use_fast_math",
-                        ],
-                    },
-                )
-            ],
+        ext_modules=[ext],
         cmdclass={
             "build_ext": BuildExtension
             },
