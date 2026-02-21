@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 import os
 
-csrc_path = os.path.join(os.path.dirname(__file__), "csrc")
+csrc_path = "csrc"
 
 setup(
         name="TruncGPTQ",
