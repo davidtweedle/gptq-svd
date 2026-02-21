@@ -1,4 +1,4 @@
-import Torch
+import torch
 
 try:
     from . import _C
@@ -6,18 +6,19 @@ except ImportError:
     _C = None
     print("Warning: CUDA extension not found. Please install with 'pip install .'")
 
-def fused_gptq_step(W, H, Scales, Zeros, col_offset, qmin=-7.0, qmax=7.0):
+def fused_gptq_step(W, H, Scales, Zeros, Err, col_offset, block_cols=1024, qmin=-7.0, qmax=7.0):
     if _C is None:
         raise RuntimeError("CUDA extension not compiled.")
 
-    M, _ = W.shape
-    block_size = 64
+    total_cols = W.size(1)
+    block_cols = min(block_size, total_cols - col_offset)
 
-    if not W.is_contiguous(): W = W.contiguous()
-    if not H.is_contiguous(): H = H.contiguous()
+    H_block = H[col_offset: col_offset + block_cols, col_offset: col_offset + block_cols].T.contiguous()
+    S_block = Scales[:, col_offset: col_offset + block_cols].contiguous()
+    Z_block = Zeros[:, col_offset: col_offset + block_cols].contiguous()
+    W = W.contiguous()
+    Err = Err.contiguous()
 
-    Err = torch.empty((M, block_size), device=W.device, dtype=W.dtype)
-
-    _C.gptq_fused(W, Err, H, Scales, Zeros, col_offset, qmin, qmax)
+    _C.gptq_fused(W, H_block, S_block, Z_block, Err, total_cols, col_offset, block_cols, qmin, qmax)
 
     return W

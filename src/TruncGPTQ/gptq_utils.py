@@ -162,17 +162,19 @@ def process_hessian(
             H_damped.diagonal().add_(damp * mean_diag)
             L = torch.linalg.cholesky(H_damped)
             H_inv = torch.cholesky_inverse(L)
-            H_inv_chol = torch.linalg.cholesky(H_inv, upper=True)
+            H_inv_factor = torch.linalg.cholesky(H_inv, upper=True)
             if damp_exp > 0:
                 logging.info(f"  Ref-GPTQ required high damping: {damp}")
             break
         except RuntimeError:
             continue
 
-    if H_inv_chol is None:
+    if H_inv_factor is None:
         logging.warning(" Hessian is singular. Using Identity fallback.")
-        H_inv_chol = torch.eye(n_features, device=device, dtype=torch.float64)
-    return H_inv_chol, perm
+        H_inv_factor = torch.eye(n_features, device=device, dtype=torch.float64)
+    H_inv_factor_diag = torch.diagonal(H_inv_factor)
+    H_inv_factor = H_inv_factor / H_inv_factor_diag.unsqueeze(1)
+    return H_inv_factor, perm
 
 # ==============================================================================
 # CLASSES
@@ -567,8 +569,8 @@ def gptq_fwrd(
     - Supports rank-reduced H_inv_sqrt
     - Supports error logging
     """
-    allow_tf32 = torch.backends.cuda.matmul.allow_tf32
-    torch.backends.cuda.matmul.allow_tf32 = False
+    prec = torch.get_float32_matmul_precision()
+    torch.set_float32_matmul_precision('highest')
 
     try:
         out_features, in_features = weight_mat.shape
@@ -589,9 +591,8 @@ def gptq_fwrd(
         W = weight_mat[:, perm].contiguous()
         S = S_full[:, perm].to(torch.float16).to(device=device, dtype=torch.float32).contiguous()
         Z = Z_full[:, perm].to(device=device, dtype=torch.float32).contiguous()
-        Err_buf = torch.zeros((out_features, block_size), device=device, dtype=torch.float32)
 
-        Q_final = torch.zeros_like(W)
+        Err = torch.zeros_like(W)
 
         for i1 in range(0, current_rank, block_size):
             i2 = min(i1 + block_size, current_rank)
@@ -599,16 +600,19 @@ def gptq_fwrd(
 
 
             if use_fused_kernel and HAS_CUDA_KERNELS:
+               
 
                 custom_kernels.fused_gptq_step(
                         W,
-                        Err_buf,
                         H_inv_sqrt,
                         S, Z,
+                        Err,
                         i1,
+                        count,
                         quantizer.min_q,
                         quantizer.max_q
                         )
+                E_block = Err[:, i1: i2]
 
             else:
 
@@ -626,16 +630,16 @@ def gptq_fwrd(
                     q = torch.round(w / s + z).clamp(quantizer.min_q, quantizer.max_q)
                     q_dequant = (q - z) * s
                     W1[:, i] = q_dequant
-                    err = (w - q_dequant) / d
+                    err = (w - q_dequant)
                     Err1[:, i] = err
                     if i + 1 < count:
                         delta = err.unsqueeze(1).matmul(Hinv1[i, i + 1:].unsqueeze(0))
                         W1[:, i + 1:] -= delta
                 E_block = Err1
 
-                if i2 < current_rank:
-                    Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
-                    W[:, i2:] -= Global_delta
+            if i2 < in_features:
+                Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
+                W[:, i2:] -= Global_delta
 
 
         if current_rank < in_features:
@@ -656,4 +660,4 @@ def gptq_fwrd(
 
         return final_W.to(dtype=orig_dtype), current_rank
     finally:
-        torch.backends.cuda.matmul.allow_tf32 = allow_tf32
+        torch.set_float32_matmul_precision(prec)

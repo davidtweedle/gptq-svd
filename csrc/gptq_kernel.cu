@@ -1,11 +1,10 @@
 #include <torch/extension.h>
-#include <cuda.h>
 #include <cuda_runtime.h>
-#include <math.h>
+#include <cmath.h>
 #include "gptq_kernel.h"
 
-#define BLOCK_SIZE 64   // GPTQ quantization block size
-#define TILE_WIDTH 32   // Step 2 update tile width
+#define WARP 32
+#define CHUNK 256
 
 __device__ __forceinline__ float quantize_val(
         float w,
@@ -22,174 +21,106 @@ __device__ __forceinline__ float quantize_val(
 
 
 __global__ void gptq_fused_kernel(
-        float* __restrict__ W,          // M by N
-        float* __restrict__ Err,        // M by BLOCK_SIZE
-        const float* __restrict__ H,    // N by N
+        float* __restrict__ W,          // M by block_size
+        const float* __restrict__ H_T,    // block_size by block_size
         const float* __restrict__ Scales,
         const float* __restrict__ Zeros,
-        int M, int N,
+        float* __restrict__ Err,
+        int total_cols,
         int col_offset,
+        int block_cols,
         float qmin, float qmax
         ) {
 
-    int row = blockIdx.x * blockDim.x + threadIdx.x;
-    int tid = threadIdx.x;
-    
-    // Share memory for H block (step 1) and H tile (step2)
+    int row = blockIdx.x;
+    int lane = threadIdx.x;
+
     extern __shared__ float sh_mem[];
-    float* sh_H = sh_mem;   // BLOCK_SIZE by BLOCK_SIZE in step 1
-                            // BLOCK_SIZE by TILE_WIDTH in step 2
-    float* sh_inv_diag = &sh_mem[BLOCK_SIZE * BLOCK_SIZE];
-    // load H[offset:offset + B, offset:offset+B]
-    int num_elements = BLOCK_SIZE * BLOCK_SIZE;
-    for (int i = tid; i < num_elements; i += blockDim.x) {
-        int r = i / BLOCK_SIZE;
-        int c = i % BLOCK_SIZE;
-        int global_r = col_offset + r;
-        int global_c = col_offset + c;
-        if (global_r < N && global_c < N) {
-            sh_H[r * BLOCK_SIZE + c] = H[global_r * N + global_c];
-        } else {
-            sh_H[r * BLOCK_SIZE + c] = 0.0f;
-        }
-    }
-    __syncthreads();
+    float* sh_H = sh_mem;
 
-    // Compute inverse diag
-    if (tid < BLOCK_SIZE) {
-        float diag = sh_H[tid * BLOCK_SIZE + tid];
-        sh_inv_diag[tid] = (diag != 0.0f) ? (1.0f / diag) : 0.0f;
-    }
+    float err[32];
+    #pragma unroll
+    for (int i = 0; i < 32; ++i)
+        err[i] = 0.0f;
 
-    // Load weights to registers
-    // Keep errors through to step 2
-    float w_regs[BLOCK_SIZE];
-    float err_regs[BLOCK_SIZE];
+    for (int j = 0; j < block_cols; ++j) {
+        float corr = 0.0f;
 
-    if (row < M) {
-        #pragma unroll
-        for (int j = 0; j < BLOCK_SIZE; ++j) {
-            if (col_offset + j < N) {
-                w_regs[j] = W[row * N + (col_offset + j)];
-            } else {
-                w_regs[j] = 0.0f;
+        for (int i0 = 0; i0 < j; i0 += CHUNK) {
+
+            int i_max = min(i0 + CHUNK, j);
+            int chunk_size = i_max - i0;
+
+            for (int idx = lane; idx < chunk_size; idx += WARP) {
+                sh_H[idx] = H_T[j * block_cols + (i0 + idx)];
             }
-        }
-    }
 
-    // quantize weights
-    if (row < M) {
-        for (int j = 0; j < BLOCK_SIZE; ++j) {
-            if (col_offset + j >= N) break;
+            __syncwarp();
+            for (int i = i0; i < i_max; ++i) {
+                int owner_lane = i % WARP;
+                int idx_in_lane = i / WARP;
 
-            float w = w_regs[j];
-            float s = Scales[col_offset + j];
-            float z = Zeros[col_offset + j];
+                float e_i = __shfl_sync(0xFFFFFFFF, err[idx_in_lane], owner_lane);
+                float Hij = sh_H[i - i0];
 
-            float d = quantize_val(w, s, z, qmin, qmax);
-            float err = w - q;
-
-            w_regs[j] = q;
-            err_regs[j] = err;
-
-            float d_inv = sh_inv_diag[j];
-
-            #pragma unroll
-            for (int k = j + 1; k < BLOCK_SIZE; ++k) {
-                float corr = sh_H[j * BLOCK_SIZE + k] * d_inv;
-                w_regs[k] -= err * corr;
+                corr = fmaf(e_i, Hij, corr);
             }
+
         }
+        if ((j % WARP) == lane) {
+            int j_global = col_offset + j;
+            float w = W[(long long)row * total_cols + j_global];
 
-        #pragma unroll
-        for (int j = 0; j < BLOCK_SIZE; ++j) {
-            if (col_offset + j < N) {
-                W[row * N + (col_offset + j)] = w_regs[j];
-            }
+            w -= corr;
+
+            float s = Scales[j];
+            float z = Zeros[j];
+
+            float q = quantize_val(w, s, z, qmin, qmax);
+            err[j / WARP] = w - q;
+
+            W[(long long)row * total_cols + j_global] = q;
+            Err[(long long)row * total_cols + j_global] = err[j / WARP];
         }
-    }
-
-    __syncthreads();
-
-    // Step 2: propogate error to columns outside block
-
-    int rem_start = col_offset + BLOCK_SIZE;
-    
-    for (int k_start = rem_start; k_start < N; k_start += TILE_WIDTH) {
-        // Load H_tile to shared memory
-        // H[col_offset : col_offset + B, k_start: k_start + TILE_WIDTH]
-
-        int tile_elements = BLOCK_SIZE * TILE_WIDTH;
-        for (int i = tid; i < tile_elements; i += blockDim.x) {
-            int r = i / TILE_WIDTH;
-            int c = i % TILE_WIDTH;
-
-            int global_h_row = col_offset + r;
-            int global_h_col = k_start + c;
-
-            if (global_h_col < N) {
-                float h_val = H[global_h_row * N + global_h_col];
-
-                float scale = sh_inv_diag[r];
-                sh_H[r * TILE_WIDTH + c] = h_val * scale;
-            } else {
-                sh_H[r * TILE_WIDTH + c] = 0.0f;
-            }
-        }
-        __syncthreads();
-
-        // Compute and update W
-        if (row < M) {
-            for (int k = 0; k < TILE_WIDTH; ++k) {
-                int global_col = k_start + k;
-                if (global_col >= N) break;
-
-                float w_val = W[row * N + global_col];
-
-                float correction = 0.0f;
-
-                #pragma unroll
-                for (int b = 0; b < BLOCK_SIZE; ++b) {
-                    correction += err_regs[b] * sh_H[b * TILE_WIDTH + k];
-                }
-                
-                W[row * N + global_col] = w_val - correction;
-            }
-        }
-        __syncthreads();
+        __syncwarp();
     }
 }
-
 
 void gptq_fused_cuda(
         torch::Tensor W,
+        const torch::Tensor& H_T,
+        const torch::Tensor& Scales,
+        const torch::Tensor& Zeros,
         torch::Tensor Err,
-        torch::Tensor H,
-        torch::Tensor Scales,
-        torch::Tensor Zeros,
+        int total_cols,
         int col_offset,
+        int block_cols,
         float qmin,
         float qmax
         ) {
-    int M = W.size(0);
-    itn N = W.size(1);
+    const int rows = W.size(0);
 
-    dim3 blockDim(256);
-    dim3 gridDim((M + 255) / 256);
+    const int threads = WARP;
+    const int blocks = rows;
 
-    int shared_mem_bytes = (BLOCK_SIZE * BLOCK_SIZE + BLOCK_SIZE) * sizeof(float);
+    size_t shared_mem_bytes = CHUNK * sizeof(float);
 
-    gptq_fused_kernel<<<gridDim, blockDim, shared_mem_bytes>>>(
+    cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+    gptq_fused_kernel<<<blocks, threads, shared_mem_bytes, stream>>>(
             W.data_ptr<float>(),
-            Err.data_ptr<float>(),
-            H.data_ptr<float>(),
+            H_T.data_ptr<float>(),
             Scales.data_ptr<float>(),
             Zeros.data_ptr<float>(),
-            M, N, col_offset, qmin, qmax
+            Err.data_ptr<float>(),
+            total_cols,
+            col_offset,
+            block_cols, 
+            qmin,
+            qmax
             );
 
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        printf("CUDA Error: %s\n", cudaGetErrorString(err));
-    }
+    AT_CUDA_CHECK(cudaGetLastError());
 }
+
+
