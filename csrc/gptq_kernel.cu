@@ -1,6 +1,6 @@
 #include <torch/extension.h>
 #include <cuda_runtime.h>
-#include <cmath.h>
+#include <cmath>
 #include "gptq_kernel.h"
 
 #define WARP 32

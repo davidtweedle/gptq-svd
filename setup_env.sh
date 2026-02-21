@@ -7,7 +7,16 @@ source $(conda info --base)/etc/profile.d/conda.sh
 conda activate trunc-gptq
 
 conda install -c nvidia cuda-nvcc=12.4 -y
-conda install -c conda-forge gxx_linux-64 -y
+export PATH="$CONDA_PREFIX/bin:$PATH"
+unset CUDA_HOME CUDA_PATH
+hash -r
+conda install -c conda-forge gcc_linux-64=13 gxx_linux-64=13 -y
+
+export CC=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc
+export CXX=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++
+export MAX_JOBS=1
+export NINJAFLAGS="-j1"
+
 pip install ninja packaging
 
 echo "=== Installing Magma ==="
