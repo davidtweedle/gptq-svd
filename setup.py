@@ -1,6 +1,10 @@
 from setuptools import setup, find_packages
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
-import os
+import os, torch
+
+torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
+
+extra_link_args = [f"-Wl,-rpath,{torch_lib}"]
 
 csrc_path = "csrc"
 
@@ -16,6 +20,7 @@ setup(
                     os.path.join(csrc_path, "binding.cpp"),
                     os.path.join(csrc_path, "gptq_kernel.cu"),
                     ],
+                extra_link_args=extra_link_args,
                 extra_compile_args={
                     "cxx": ["-O3"],
                     "nvcc": [
