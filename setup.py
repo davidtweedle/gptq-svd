@@ -17,9 +17,9 @@ setup(
                     os.path.join(csrc_path, "gptq_kernel.cu"),
                     ],
                 extra_compile_args={
-                    "cxx": ["-03"],
+                    "cxx": ["-O3"],
                     "nvcc": [
-                        "-03",
+                        "-O3",
                         "--use_fast_math",
                         ],
                     },
