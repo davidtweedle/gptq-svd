@@ -22,6 +22,7 @@ ext = CUDAExtension(
             ],
         include_dirs=[csrc_path],
         library_dirs=[torch_lib],
+        extra_link_args=extra_link_args,
         extra_compile_args={
             "cxx": ["-O3"],
             "nvcc": ["-O3", "--use_fast_math"],
@@ -30,7 +31,7 @@ ext = CUDAExtension(
 
 
 setup(
-        name="truncgptq",
+        name="TruncGPTQ",
         version="0.1.0",
         packages=find_packages(where="src"),
         package_dir={"": "src"},
