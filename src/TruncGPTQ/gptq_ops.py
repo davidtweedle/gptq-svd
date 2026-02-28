@@ -11,7 +11,7 @@ def fused_gptq_step(W, H, Scales, Zeros, Err, col_offset, block_cols=1024, qmin=
         raise RuntimeError("CUDA extension not compiled.")
 
     total_cols = W.size(1)
-    block_cols = min(block_size, total_cols - col_offset)
+    block_cols = min(block_cols, total_cols - col_offset)
 
     H_block = H[col_offset: col_offset + block_cols, col_offset: col_offset + block_cols].T.contiguous()
     S_block = Scales[:, col_offset: col_offset + block_cols].contiguous()

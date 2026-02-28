@@ -74,8 +74,8 @@ __global__ void gptq_fused_kernel(
 
             w -= corr;
 
-            float s = Scales[j];
-            float z = Zeros[j];
+            float s = Scales[(long long)row * block_cols + j];
+            float z = Zeros[(long long)row * block_cols + j];
 
             float q = quantize_val(w, s, z, qmin, qmax);
             err[j / WARP] = w - q;
