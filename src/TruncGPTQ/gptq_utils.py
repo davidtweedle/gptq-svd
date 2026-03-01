@@ -638,8 +638,7 @@ def gptq_fwrd(
                 E_block = Err1
 
             if i2 < in_features:
-                Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
-                W[:, i2:] -= Global_delta
+                W[:, i2:].addmm_(E_block, H_inv_sqrt[i1:i2, i2:], beta=1.0, alpha=-1.0)
 
 
         if current_rank < in_features:
