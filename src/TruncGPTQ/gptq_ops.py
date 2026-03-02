@@ -2,9 +2,10 @@ import torch
 
 try:
     from . import _C
-except ImportError:
+except ImportError as e:
     _C = None
-    print("Warning: CUDA extension not found. Please install with 'pip install .'")
+    print(f"Failed to import TruncGPTQ._C: {e}")
+    raise
 
 def fused_gptq_step(W, H, Scales, Zeros, Err, col_offset, block_cols=1024, qmin=-7.0, qmax=7.0):
     if _C is None:
