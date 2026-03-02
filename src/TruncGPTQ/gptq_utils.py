@@ -559,7 +559,7 @@ def gptq_fwrd(
         H_inv_sqrt: torch.Tensor,
         quantizer: Quantizer,
         perm: torch.Tensor,
-        block_size: int = 64,
+        block_size: int = 1024,
         use_fused_kernel: bool = True,
         R_x: Optional[torch.Tensor] = None
         ) -> Tuple[torch.Tensor, int]:
