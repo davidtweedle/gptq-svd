@@ -593,33 +593,28 @@ def gptq_fwrd(
         Z = Z_full[:, perm].to(device=device, dtype=torch.float32).contiguous()
 
         Err = torch.zeros_like(W)
+        Q_final = torch.zeros_like(W)
 
         for i1 in range(0, current_rank, block_size):
             i2 = min(i1 + block_size, current_rank)
             count = i2 - i1
 
+            W1 = W[:, i1:i2]
+            S1 = S[:, i1:i2]
+            Z1 = Z[:, i1:i2]
+            Hinv1 = H_inv_sqrt[i1:i2, i1:i2]
 
-            if use_fused_kernel and HAS_CUDA_KERNELS:
-               
-
-                custom_kernels.fused_gptq_step(
-                        W,
-                        H_inv_sqrt,
-                        S, Z,
-                        Err,
-                        i1,
-                        count,
-                        quantizer.min_q,
-                        quantizer.max_q
+            if use_fused_kernel:
+                w_block_quantized, E_block = triton_process_block(
+                        W1,
+                        S1,
+                        Z1,
+                        Hinv1,
+                        quantizer
                         )
-                E_block = Err[:, i1: i2]
 
             else:
-
-                W1 = W[:, i1:i2]
-                S1 = S[:, i1:i2]
-                Z1 = Z[:, i1:i2]
-                Hinv1 = H_inv_sqrt[i1:i2, i1:i2]
+                Q1 = torch.zeros_like(W1)
                 Err1 = torch.zeros_like(W1)
                 for i in range(count):
                     w = W1[:, i].clone()
@@ -629,16 +624,25 @@ def gptq_fwrd(
 
                     q = torch.round(w / s + z).clamp(quantizer.min_q, quantizer.max_q)
                     q_dequant = (q - z) * s
-                    W1[:, i] = q_dequant
-                    err = (w - q_dequant)
+                    Q1[:, i] = q_dequant
+                    err = (w - q_dequant) / d
+                    delta = err.unsqueeze(1).matmul(Hinv1[i, i:].unsqueeze(0))
+                    W1[:, i:] -= delta
                     Err1[:, i] = err
-                    if i + 1 < count:
-                        delta = err.unsqueeze(1).matmul(Hinv1[i, i + 1:].unsqueeze(0))
-                        W1[:, i + 1:] -= delta
+                w_block_quantized = Q1
                 E_block = Err1
 
             if i2 < in_features:
-                W[:, i2:].addmm_(E_block, H_inv_sqrt[i1:i2, i2:], beta=1.0, alpha=-1.0)
+                if use_fused_kernel:
+                    H_inv_sqrt_cross = H_inv_sqrt[i1:i2, i2:]
+                    diag_vals = torch.diagonal(Hinv1)
+                    scale_mat = H_inv_sqrt_cross / diag_vals.unsqueeze(1)
+                    Global_delta = E_block @ scale_mat
+                else:
+                    Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
+                W[:, i2:] -= Global_delta
+
+            Q_final[:, i1:i2] = w_block_quantized
 
 
         if current_rank < in_features:
@@ -647,11 +651,11 @@ def gptq_fwrd(
             Z_tail = Z[:, current_rank:]
 
             q_tail = torch.round(W_tail / S_tail + Z_tail).clamp(quantizer.min_q, quantizer.max_q)
-            W[:, current_rank:] = (q_tail - Z_tail) * S_tail
+            Q_final[:, current_rank:] = (q_tail - Z_tail) * S_tail
 
         # restore original column order
         inv_perm = torch.argsort(perm)
-        final_W = W[:, inv_perm].contiguous()
+        final_W = Q_final[:, inv_perm].contiguous()
         torch.cuda.synchronize()
 
         if R_x is not None:
