@@ -95,29 +95,43 @@ def plot_diag_vs_gptq(records, output_dir):
     plt.close(fig)
 
 
-def plot_diag_vs_trunc(records, output_dir):
+def plot_update_diag_by_order(records, output_dir):
     fig, axes = plt.subplots(1, len(records), figsize=(5 * len(records), 4), squeeze=False)
     axes = axes[0]
 
     for ax, record in zip(axes, records):
-        h_diag = sort_desc(record["H_diag"]).clamp_min(1e-20)
-        trunc_diag = sort_desc(record["trunc_raw_diag"].abs()).clamp_min(1e-20)
-        pivot_diag = sort_desc(record["trunc_pivot_diag"].abs()).clamp_min(1e-20)
+        h_diag = record["H_diag"].detach().cpu().to(torch.float64)
+        gptq_diag = record["gptq_raw_diag"].detach().cpu().to(torch.float64).abs()
+        trunc_diag = record["trunc_raw_diag"].detach().cpu().to(torch.float64).abs()
 
-        ax.plot(h_diag.numpy(), label="diag(H)", linewidth=2)
-        ax.plot(trunc_diag.numpy(), label="diag(Trunc factor)", linewidth=2)
-        ax.plot(pivot_diag.numpy(), label="diag(Pivoted QR factor)", linewidth=2)
+        # Standard GPTQ is commonly discussed in the ordering induced by diag(H).
+        gptq_order = torch.argsort(h_diag, descending=True)
+        gptq_ordered = gptq_diag[gptq_order]
+
+        # TruncGPTQ's update diagonal is already produced in pivot order.
+        ax.plot(
+            torch.arange(len(gptq_ordered)).numpy(),
+            gptq_ordered.numpy(),
+            label="GPTQ diag(H) order",
+            linewidth=2,
+        )
+        ax.plot(
+            torch.arange(len(trunc_diag)).numpy(),
+            trunc_diag.numpy(),
+            label="TruncGPTQ pivot order",
+            linewidth=2,
+        )
         ax.set_yscale("log")
         ax.set_title(layer_label(record))
-        ax.set_xlabel("Sorted Index")
+        ax.set_xlabel("Update Index")
         ax.set_ylabel("Value")
         ax.grid(True, alpha=0.3)
         ax.legend()
 
-    fig.suptitle("diag(H) vs TruncGPTQ Diagonals")
+    fig.suptitle("Update Diagonal by Induced Ordering")
     fig.tight_layout()
     fig.savefig(
-        os.path.join(output_dir, "diag_h_vs_trunc.png"),
+        os.path.join(output_dir, "update_diag_by_order.png"),
         dpi=200,
         bbox_inches="tight",
     )
@@ -134,8 +148,7 @@ def main():
         raise ValueError(f"No records found in {args.stats_dir}")
 
     plot_eigvals(records, output_dir)
-    plot_diag_vs_gptq(records, output_dir)
-    plot_diag_vs_trunc(records, output_dir)
+    plot_update_diag_by_order(records, output_dir)
 
 
 if __name__ == "__main__":
