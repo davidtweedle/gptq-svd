@@ -84,12 +84,12 @@ def main():
         layer_idx = int(payload["layer_index"])
         name = payload["submodule_name"]
 
-        W_base = payload["weight"].to(torch.float32, device=args.device)
-        H_inv_sqrt = payload["H_inv_sqrt"].to(torch.float32, device=args.device)
-        perm = payload["perm"].to(torch.long, device=args.device)
+        W_base = payload["weight"].to(device=args.device, dtype=torch.float32)
+        H_inv_sqrt = payload["H_inv_sqrt"].to(device=args.device, dtype=torch.float32)
+        perm = payload["perm"].to(device=args.device, dtype=torch.long)
         R_x = payload.get("R_x")
         if R_x is not None:
-            R_x = R_x.to(torch.float32, device=args.device)
+            R_x = R_x.to(device=args.device, dtype=torch.float32)
 
         for kernel_impl in kernel_impls:
             for accum_dtype in accum_dtypes:
