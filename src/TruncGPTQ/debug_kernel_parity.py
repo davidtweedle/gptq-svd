@@ -1,8 +1,12 @@
 import argparse
 import torch
 
-import gptq_ops as custom_kernels
-from gptq_utils import Quantizer, triton_process_block
+try:
+    from . import gptq_ops as custom_kernels
+    from .gptq_utils import Quantizer, triton_process_block
+except ImportError:
+    import gptq_ops as custom_kernels
+    from gptq_utils import Quantizer, triton_process_block
 
 
 def parse_args():
