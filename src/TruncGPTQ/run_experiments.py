@@ -18,7 +18,7 @@ experiments = []
 # Focused full-model comparison: CUDA lazy-reduce vs CUDA immediate.
 experiments.extend([
     {
-        "name": "Trunc_W4_Asym_1e-5_cuda_lazy_reduce_fp32",
+        "name": "Trunc_W4_Asym_1e-5_cuda_lazy_reduce_fp32_matmul",
         "mode": "eigh",
         "w_bits": 4,
         "group": 128,
@@ -31,9 +31,10 @@ experiments.extend([
         "rotate_weights": False,
         "kernel_impl": "cuda_lazy_reduce",
         "accum_dtype": "fp32",
+        "large_update_impl": "matmul",
     },
     {
-        "name": "Trunc_W4_Asym_1e-5_cuda_immediate_fp32",
+        "name": "Trunc_W4_Asym_1e-5_cuda_immediate_fp32_matmul",
         "mode": "eigh",
         "w_bits": 4,
         "group": 128,
@@ -46,9 +47,44 @@ experiments.extend([
         "rotate_weights": False,
         "kernel_impl": "cuda_immediate",
         "accum_dtype": "fp32",
+        "large_update_impl": "matmul",
+    },
+    {
+        "name": "Trunc_W4_Asym_1e-5_cuda_lazy_reduce_fp32_addmm",
+        "mode": "eigh",
+        "w_bits": 4,
+        "group": 128,
+        "sym": False,
+        "algo": "TruncGPTQ",
+        "adaptive_eps": False,
+        "eps": 1e-5,
+        "batch_size": 32,
+        "beta": 1.0,
+        "rotate_weights": False,
+        "kernel_impl": "cuda_lazy_reduce",
+        "accum_dtype": "fp32",
+        "large_update_impl": "addmm",
+    },
+    {
+        "name": "Trunc_W4_Asym_1e-5_cuda_immediate_fp32_addmm",
+        "mode": "eigh",
+        "w_bits": 4,
+        "group": 128,
+        "sym": False,
+        "algo": "TruncGPTQ",
+        "adaptive_eps": False,
+        "eps": 1e-5,
+        "batch_size": 32,
+        "beta": 1.0,
+        "rotate_weights": False,
+        "kernel_impl": "cuda_immediate",
+        "accum_dtype": "fp32",
+        "large_update_impl": "addmm",
     },
 ])
 
+
+experiments = experiments[2:]
 
 def run_command(cmd_list):
     print(f"\n[EXEC] {' '.join(cmd_list)}")
@@ -94,6 +130,7 @@ def main():
                 "--beta", str(exp['beta']),
                 "--kernel_impl", exp.get("kernel_impl", "triton"),
                 "--accum_dtype", exp.get("accum_dtype", "fp32"),
+                "--large_update_impl", exp.get("large_update_impl", "matmul"),
                 ]
         if exp["mode"] == "baseline":
             cmd.extend(["--mode", "baseline"])
