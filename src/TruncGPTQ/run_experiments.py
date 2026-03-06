@@ -15,47 +15,39 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-for bits in [4, 3, 2]:
-    for eps in [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]:
-        beta = 1.0
-        if bits == 3:
-            beta = 0.95
-        elif bits == 2:
-            beta = 0.8
-        experiments.append({
-            "name": f"Trunc_W{bits}_Sym_{eps}",
-            "mode": "eigh",
-            "w_bits": bits,
-            "group": 128,
-            "sym": True,
-            "algo": "TruncGPTQ",
-            "adaptive_eps": False,
-            "eps": eps,
-            "batch_size": 32,
-            "beta": beta,
-            "rotate_weights": False,
-            })
-
-for bits in [4, 3, 2]:
-    for eps in [1e-6, 1e-5, 1e-4, 1e-3, 1e-2]:
-        beta = 1.0
-        if bits == 3:
-            beta = 0.95
-        elif bits == 2:
-            beta = 0.8
-        experiments.append({
-            "name": f"Trunc_W{bits}_Asym_{eps}",
-            "mode": "eigh",
-            "w_bits": bits,
-            "group": 128,
-            "sym": False,
-            "algo": "TruncGPTQ",
-            "adaptive_eps": False,
-            "eps": eps,
-            "batch_size": 32,
-            "beta": beta,
-            "rotate_weights": False
-            })
+# Focused full-model comparison: CUDA lazy-reduce vs CUDA immediate.
+experiments.extend([
+    {
+        "name": "Trunc_W4_Asym_1e-5_cuda_lazy_reduce_fp32",
+        "mode": "eigh",
+        "w_bits": 4,
+        "group": 128,
+        "sym": False,
+        "algo": "TruncGPTQ",
+        "adaptive_eps": False,
+        "eps": 1e-5,
+        "batch_size": 32,
+        "beta": 1.0,
+        "rotate_weights": False,
+        "kernel_impl": "cuda_lazy_reduce",
+        "accum_dtype": "fp32",
+    },
+    {
+        "name": "Trunc_W4_Asym_1e-5_cuda_immediate_fp32",
+        "mode": "eigh",
+        "w_bits": 4,
+        "group": 128,
+        "sym": False,
+        "algo": "TruncGPTQ",
+        "adaptive_eps": False,
+        "eps": 1e-5,
+        "batch_size": 32,
+        "beta": 1.0,
+        "rotate_weights": False,
+        "kernel_impl": "cuda_immediate",
+        "accum_dtype": "fp32",
+    },
+])
 
 
 def run_command(cmd_list):
@@ -99,7 +91,9 @@ def main():
                 "--threshold_method", "energy",
                 "--sketch_ratio", "1.0",
                 "--no_save",
-                "--beta", str(exp['beta'])
+                "--beta", str(exp['beta']),
+                "--kernel_impl", exp.get("kernel_impl", "triton"),
+                "--accum_dtype", exp.get("accum_dtype", "fp32"),
                 ]
         if exp["mode"] == "baseline":
             cmd.extend(["--mode", "baseline"])
