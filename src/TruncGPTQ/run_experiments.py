@@ -84,8 +84,6 @@ experiments.extend([
 ])
 
 
-experiments = experiments[2:]
-
 def run_command(cmd_list):
     print(f"\n[EXEC] {' '.join(cmd_list)}")
     with subprocess.Popen(
