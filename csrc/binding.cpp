@@ -6,7 +6,7 @@
 #define CHECK_FLOAT(x) TORCH_CHECK(x.scalar_type() == at::kFloat, #x " must be float32")
 #define CHECK_INPUT(x) CHECK_CUDA(x); CHECK_CONTIGUOUS(x); CHECK_FLOAT(x)
 
-void gptq_fused_py(
+static void validate_inputs(
         torch::Tensor W,
         torch::Tensor H_T,
         torch::Tensor Scales,
@@ -40,11 +40,88 @@ void gptq_fused_py(
     TORCH_CHECK(Scales.size(1) == block_cols, "Scales must have block_cols cols");
     TORCH_CHECK(Zeros.size(1) == block_cols, "Zeros must have block_cols cols");
     TORCH_CHECK(Err.sizes() == W.sizes(), "Err must match W shape");
+}
+
+void gptq_fused_lazy_py(
+        torch::Tensor W,
+        torch::Tensor H_T,
+        torch::Tensor Scales,
+        torch::Tensor Zeros,
+        torch::Tensor Err,
+        int total_cols,
+        int col_offset,
+        int block_cols,
+        float qmin,
+        float qmax,
+        bool accum_fp64
+        ) {
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    gptq_fused_lazy_cuda(
+            W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, accum_fp64
+            );
+}
+
+void gptq_fused_immediate_py(
+        torch::Tensor W,
+        torch::Tensor H_T,
+        torch::Tensor Scales,
+        torch::Tensor Zeros,
+        torch::Tensor Err,
+        int total_cols,
+        int col_offset,
+        int block_cols,
+        float qmin,
+        float qmax,
+        bool accum_fp64
+        ) {
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    gptq_fused_immediate_cuda(
+            W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, accum_fp64
+            );
+}
+
+void gptq_fused_lazy_reduce_py(
+        torch::Tensor W,
+        torch::Tensor H_T,
+        torch::Tensor Scales,
+        torch::Tensor Zeros,
+        torch::Tensor Err,
+        int total_cols,
+        int col_offset,
+        int block_cols,
+        float qmin,
+        float qmax,
+        bool accum_fp64
+        ) {
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    gptq_fused_lazy_reduce_cuda(
+            W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, accum_fp64
+            );
+}
 
 
-    gptq_fused_cuda(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax);
+void gptq_fused_py(
+        torch::Tensor W,
+        torch::Tensor H_T,
+        torch::Tensor Scales,
+        torch::Tensor Zeros,
+        torch::Tensor Err,
+        int total_cols,
+        int col_offset,
+        int block_cols,
+        float qmin,
+        float qmax
+        ) {
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+
+    gptq_fused_lazy_cuda(
+            W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, false
+            );
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("gptq_fused", &gptq_fused_py, "GPTQ Fused Kernel (CUDA)");
+    m.def("gptq_fused_lazy", &gptq_fused_lazy_py, "GPTQ Fused Lazy Kernel (CUDA)");
+    m.def("gptq_fused_immediate", &gptq_fused_immediate_py, "GPTQ Fused Immediate Kernel (CUDA)");
+    m.def("gptq_fused_lazy_reduce", &gptq_fused_lazy_reduce_py, "GPTQ Fused Lazy-Reduce Kernel (CUDA)");
 }

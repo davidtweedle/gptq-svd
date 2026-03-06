@@ -122,6 +122,20 @@ def get_args():
             "--rotate_weights", action="store_true",
             help="Rotate weights by random Hadamard matrix before quantization."
             )
+    quant_group.add_argument(
+            "--kernel_impl",
+            type=str,
+            default="triton",
+            choices=["triton", "python", "cuda_lazy", "cuda_lazy_reduce", "cuda_immediate"],
+            help="Kernel implementation for GPTQ block update."
+            )
+    quant_group.add_argument(
+            "--accum_dtype",
+            type=str,
+            default="fp32",
+            choices=["fp32", "fp64"],
+            help="Accumulation precision for CUDA kernels."
+            )
 
     # --- Output Configuration ---
     out_group = parser.add_argument_group("Output Configuration")

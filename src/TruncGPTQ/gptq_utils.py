@@ -561,6 +561,8 @@ def gptq_fwrd(
         perm: torch.Tensor,
         block_size: int = 1024,
         use_fused_kernel: bool = True,
+        kernel_impl: Optional[str] = None,
+        accum_dtype: str = "fp32",
         R_x: Optional[torch.Tensor] = None
         ) -> Tuple[torch.Tensor, int]:
     """
@@ -573,6 +575,14 @@ def gptq_fwrd(
     torch.set_float32_matmul_precision('highest')
 
     try:
+        if kernel_impl is None:
+            kernel_impl = "triton" if use_fused_kernel else "python"
+        valid_kernels = {"triton", "python", "cuda_lazy", "cuda_lazy_reduce", "cuda_immediate"}
+        if kernel_impl not in valid_kernels:
+            raise ValueError(f"Unknown kernel_impl={kernel_impl}. Valid: {sorted(valid_kernels)}")
+        if accum_dtype not in {"fp32", "fp64"}:
+            raise ValueError("accum_dtype must be one of {'fp32', 'fp64'}")
+
         out_features, in_features = weight_mat.shape
         device = weight_mat.device
         orig_dtype = weight_mat.dtype
@@ -604,7 +614,7 @@ def gptq_fwrd(
             Z1 = Z[:, i1:i2]
             Hinv1 = H_inv_sqrt[i1:i2, i1:i2]
 
-            if use_fused_kernel:
+            if kernel_impl == "triton":
                 w_block_quantized, E_block = triton_process_block(
                         W1,
                         S1,
@@ -612,6 +622,29 @@ def gptq_fwrd(
                         Hinv1,
                         quantizer
                         )
+
+            elif kernel_impl in {"cuda_lazy", "cuda_lazy_reduce", "cuda_immediate"}:
+                if not HAS_CUDA_KERNELS:
+                    raise RuntimeError("Custom CUDA kernels are unavailable. Rebuild extension first.")
+
+                accum_fp64 = (accum_dtype == "fp64")
+                if kernel_impl == "cuda_lazy":
+                    custom_kernels.fused_gptq_step_lazy(
+                            W, H_inv_sqrt, S, Z, Err, i1, count,
+                            quantizer.min_q, quantizer.max_q, accum_fp64
+                            )
+                elif kernel_impl == "cuda_lazy_reduce":
+                    custom_kernels.fused_gptq_step_lazy_reduce(
+                            W, H_inv_sqrt, S, Z, Err, i1, count,
+                            quantizer.min_q, quantizer.max_q, accum_fp64
+                            )
+                else:
+                    custom_kernels.fused_gptq_step_immediate(
+                            W, H_inv_sqrt, S, Z, Err, i1, count,
+                            quantizer.min_q, quantizer.max_q, accum_fp64
+                            )
+                w_block_quantized = W[:, i1:i2].contiguous()
+                E_block = Err[:, i1:i2]
 
             else:
                 Q1 = torch.zeros_like(W1)
@@ -633,7 +666,7 @@ def gptq_fwrd(
                 E_block = Err1
 
             if i2 < in_features:
-                if use_fused_kernel:
+                if kernel_impl in {"triton", "cuda_lazy", "cuda_lazy_reduce", "cuda_immediate"}:
                     H_inv_sqrt_cross = H_inv_sqrt[i1:i2, i2:]
                     diag_vals = torch.diagonal(Hinv1)
                     scale_mat = H_inv_sqrt_cross / diag_vals.unsqueeze(1)

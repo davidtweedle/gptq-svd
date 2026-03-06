@@ -231,7 +231,8 @@ def main():
                             quantizer=quantizer,
                             perm=shared_stats["perm"],
                             block_size=1024,
-                            use_fused_kernel=True,
+                            kernel_impl=args.kernel_impl,
+                            accum_dtype=args.accum_dtype,
                             R_x=shared_stats.get("R_x")
                             )
                     final_W = final_W @ had_mat.to(torch.float32).T
@@ -242,8 +243,9 @@ def main():
                             H_inv_sqrt=shared_stats["R"],
                             quantizer=quantizer,
                             block_size=1024,
-                            use_fused_kernel=True,
-                            perm=shared_stats["perm"]
+                            perm=shared_stats["perm"],
+                            kernel_impl=args.kernel_impl,
+                            accum_dtype=args.accum_dtype
                             )
                     final_W = final_W @ had_mat.to(torch.float32).T
                 elif args.mode == "test":
