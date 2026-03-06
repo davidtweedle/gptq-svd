@@ -23,6 +23,13 @@ def parse_args():
     parser.add_argument("--block_size", type=int, default=1024)
     parser.add_argument("--rows", type=int, default=64)
     parser.add_argument("--tol", type=float, default=1e-6)
+    parser.add_argument(
+            "--kernel_impl",
+            type=str,
+            default="cuda_immediate",
+            choices=["cuda_immediate", "cuda_lazy_reduce", "cuda_lazy"],
+            help="CUDA kernel variant to compare against Triton.",
+            )
     return parser.parse_args()
 
 
@@ -65,21 +72,48 @@ def run_triton_block(Wp, H_inv_sqrt, S, Z, i1, count, quantizer):
     return Q, E
 
 
-def run_cuda_immediate_block(Wp, H_inv_sqrt, S, Z, i1, count, quantizer):
+def run_cuda_block(Wp, H_inv_sqrt, S, Z, i1, count, quantizer, kernel_impl):
     Wc = Wp.clone()
     Err = torch.zeros_like(Wc)
-    custom_kernels.fused_gptq_step_immediate(
-            Wc,
-            H_inv_sqrt,
-            S,
-            Z,
-            Err,
-            i1,
-            count,
-            quantizer.min_q,
-            quantizer.max_q,
-            False,
-            )
+    if kernel_impl == "cuda_immediate":
+        custom_kernels.fused_gptq_step_immediate(
+                Wc,
+                H_inv_sqrt,
+                S,
+                Z,
+                Err,
+                i1,
+                count,
+                quantizer.min_q,
+                quantizer.max_q,
+                False,
+                )
+    elif kernel_impl == "cuda_lazy_reduce":
+        custom_kernels.fused_gptq_step_lazy_reduce(
+                Wc,
+                H_inv_sqrt,
+                S,
+                Z,
+                Err,
+                i1,
+                count,
+                quantizer.min_q,
+                quantizer.max_q,
+                False,
+                )
+    else:
+        custom_kernels.fused_gptq_step_lazy(
+                Wc,
+                H_inv_sqrt,
+                S,
+                Z,
+                Err,
+                i1,
+                count,
+                quantizer.min_q,
+                quantizer.max_q,
+                False,
+                )
     i2 = i1 + count
     Q = Wc[:, i1:i2].contiguous()
     E = Err[:, i1:i2].contiguous()
@@ -110,15 +144,15 @@ def main():
     print(f"Testing block: start={i1}, count={count}, rows={Wp.shape[0]}")
 
     Qt, Et = run_triton_block(Wp, H_inv_sqrt, S, Z, i1, count, quantizer)
-    Qc, Ec = run_cuda_immediate_block(Wp, H_inv_sqrt, S, Z, i1, count, quantizer)
+    Qc, Ec = run_cuda_block(Wp, H_inv_sqrt, S, Z, i1, count, quantizer, args.kernel_impl)
 
-    summarize_diff("Q(triton vs cuda_immediate)", Qt, Qc, args.tol)
-    summarize_diff("E(triton vs cuda_immediate)", Et, Ec, args.tol)
+    summarize_diff(f"Q(triton vs {args.kernel_impl})", Qt, Qc, args.tol)
+    summarize_diff(f"E(triton vs {args.kernel_impl})", Et, Ec, args.tol)
 
     first_bad = None
     for k in range(1, count + 1):
         Qt_k, Et_k = run_triton_block(Wp, H_inv_sqrt, S, Z, i1, k, quantizer)
-        Qc_k, Ec_k = run_cuda_immediate_block(Wp, H_inv_sqrt, S, Z, i1, k, quantizer)
+        Qc_k, Ec_k = run_cuda_block(Wp, H_inv_sqrt, S, Z, i1, k, quantizer, args.kernel_impl)
         if max_abs_diff(Qt_k, Qc_k) > args.tol or max_abs_diff(Et_k, Ec_k) > args.tol:
             first_bad = k
             break
