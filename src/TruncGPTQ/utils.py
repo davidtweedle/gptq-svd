@@ -136,6 +136,13 @@ def get_args():
             choices=["fp32", "fp64"],
             help="Accumulation precision for CUDA kernels."
             )
+    quant_group.add_argument(
+            "--large_update_impl",
+            type=str,
+            default="matmul",
+            choices=["matmul", "addmm"],
+            help="Implementation for cross-block large updates."
+            )
 
     # --- Output Configuration ---
     out_group = parser.add_argument_group("Output Configuration")

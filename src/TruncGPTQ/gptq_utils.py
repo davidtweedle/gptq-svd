@@ -563,6 +563,7 @@ def gptq_fwrd(
         use_fused_kernel: bool = True,
         kernel_impl: Optional[str] = None,
         accum_dtype: str = "fp32",
+        large_update_impl: str = "matmul",
         R_x: Optional[torch.Tensor] = None
         ) -> Tuple[torch.Tensor, int]:
     """
@@ -582,6 +583,8 @@ def gptq_fwrd(
             raise ValueError(f"Unknown kernel_impl={kernel_impl}. Valid: {sorted(valid_kernels)}")
         if accum_dtype not in {"fp32", "fp64"}:
             raise ValueError("accum_dtype must be one of {'fp32', 'fp64'}")
+        if large_update_impl not in {"matmul", "addmm"}:
+            raise ValueError("large_update_impl must be one of {'matmul', 'addmm'}")
 
         out_features, in_features = weight_mat.shape
         device = weight_mat.device
@@ -670,10 +673,17 @@ def gptq_fwrd(
                     H_inv_sqrt_cross = H_inv_sqrt[i1:i2, i2:]
                     diag_vals = torch.diagonal(Hinv1)
                     scale_mat = H_inv_sqrt_cross / diag_vals.unsqueeze(1)
-                    Global_delta = E_block @ scale_mat
+                    if large_update_impl == "addmm":
+                        W[:, i2:].addmm_(E_block, scale_mat, beta=1.0, alpha=-1.0)
+                    else:
+                        Global_delta = E_block @ scale_mat
+                        W[:, i2:] -= Global_delta
                 else:
-                    Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
-                W[:, i2:] -= Global_delta
+                    if large_update_impl == "addmm":
+                        W[:, i2:].addmm_(E_block, H_inv_sqrt[i1:i2, i2:], beta=1.0, alpha=-1.0)
+                    else:
+                        Global_delta = E_block.matmul(H_inv_sqrt[i1:i2, i2:])
+                        W[:, i2:] -= Global_delta
 
             Q_final[:, i1:i2] = w_block_quantized
 

@@ -233,6 +233,7 @@ def main():
                             block_size=1024,
                             kernel_impl=args.kernel_impl,
                             accum_dtype=args.accum_dtype,
+                            large_update_impl=args.large_update_impl,
                             R_x=shared_stats.get("R_x")
                             )
                     final_W = final_W @ had_mat.to(torch.float32).T
@@ -245,7 +246,8 @@ def main():
                             block_size=1024,
                             perm=shared_stats["perm"],
                             kernel_impl=args.kernel_impl,
-                            accum_dtype=args.accum_dtype
+                            accum_dtype=args.accum_dtype,
+                            large_update_impl=args.large_update_impl
                             )
                     final_W = final_W @ had_mat.to(torch.float32).T
                 elif args.mode == "test":
