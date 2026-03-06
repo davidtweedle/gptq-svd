@@ -55,7 +55,7 @@ void gptq_fused_lazy_py(
         float qmax,
         bool accum_fp64
         ) {
-    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax);
     gptq_fused_lazy_cuda(
             W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, accum_fp64
             );
@@ -74,7 +74,7 @@ void gptq_fused_immediate_py(
         float qmax,
         bool accum_fp64
         ) {
-    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax);
     gptq_fused_immediate_cuda(
             W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, accum_fp64
             );
@@ -93,7 +93,7 @@ void gptq_fused_lazy_reduce_py(
         float qmax,
         bool accum_fp64
         ) {
-    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax);
     gptq_fused_lazy_reduce_cuda(
             W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, accum_fp64
             );
@@ -112,7 +112,7 @@ void gptq_fused_py(
         float qmin,
         float qmax
         ) {
-    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols);
+    validate_inputs(W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax);
 
     gptq_fused_lazy_cuda(
             W, H_T, Scales, Zeros, Err, total_cols, col_offset, block_cols, qmin, qmax, false
