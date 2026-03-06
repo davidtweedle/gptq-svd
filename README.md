@@ -1,12 +1,17 @@
-# TruncGPTQ: Quantization for LLMs using truncated spectral decomposition
+# TruncGPTQ: Numerically Precise GPTQ for LLM Quantization
 
 [License](LICENSE)
 
-**TruncGPTQ** is a numerically stable quantization framework for Large Language Models. It replaces the Cholesky-based solver in GPTQ with a truncated spectral approach that robustly handles rank-deficiency. By preserving the true signal structure of the Hessian, $H = X^TX$, TruncGPTQ avoids the need for the damping ($+\lambda I$) required by standard GPTQ.
+**TruncGPTQ** is a numerically precise quantization framework for Large Language Models. It replaces the Cholesky-based solver in GPTQ with a truncated spectral approach that robustly handles rank-deficiency. By preserving the true signal structure of the Hessian, $H = X^TX$, TruncGPTQ avoids the damping ($+\lambda I$) used by standard GPTQ and improves the numerical precision of the GPTQ update step.
+
+## TL;DR
+- **What:** TruncGPTQ is a numerically precise replacement for GPTQ's Hessian-inverse/update step, using spectral truncation instead of damped Cholesky.
+- **Why:** It handles ill-conditioned or rank-deficient Hessians more faithfully, improving error propagation during quantization.
+- **Result:** On Qwen3-8B, it reduces perplexity degradation versus standard GPTQ at the same bit-width/settings, with no inference-kernel changes required.
 
 TruncGPTQ is a drop-in replacement for the "Hessian Inverse" step of GPTQ, requiring no new inference kernels. On Qwen3-8B, TruncGPTQ reduces the perplexity degradation of standard GPTQ by up to 72% (relative to the FP16 baseline).
 
-## Key Contributions
+## Numerics-Focused Contributions
 
 1. Stability
 * Replaces Cholesky factorization with truncated spectral decomposition
