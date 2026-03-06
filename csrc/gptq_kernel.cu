@@ -181,7 +181,7 @@ __global__ void gptq_fused_immediate_kernel(
         for (int k = j + 1 + lane; k < block_cols; k += WARP) {
             int k_global = col_offset + k;
             float w_old = W[(long long)row * total_cols + k_global];
-            AccT delta = err_j * static_cast<AccT>(H_T[j * block_cols + k]);
+            AccT delta = err_j * static_cast<AccT>(H_T[k * block_cols + j]);
             W[(long long)row * total_cols + k_global] = static_cast<float>(
                     static_cast<AccT>(w_old) - delta
                     );
