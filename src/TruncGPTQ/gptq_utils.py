@@ -96,8 +96,9 @@ def process_hessian_alt(
         H: torch.Tensor,
         threshold: float = 0.0005,
         threshold_method: str = "mean_trimmed",
-        had_mat: Optional[torch.Tensor] = None
-        ) -> Tuple[torch.Tensor, torch.Tensor]:
+        had_mat: Optional[torch.Tensor] = None,
+        normalize_hinv_diag: bool = True
+        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     H_double = H.to(dtype=torch.float64)
     L, V = torch.linalg.eigh(H_double)
     S = torch.sqrt(L.clamp(min=1e-12)).flip(0)
@@ -127,11 +128,27 @@ def process_hessian_alt(
     H_inv_partial = S_inv.unsqueeze(1) * Vh
     H_inv_permuted = H_inv_partial[:, perm]
     _, R_prime = torch.linalg.qr(H_inv_permuted, mode='reduced')
-    # diag_sign = torch.sign(torch.diagonal(R_prime))
-    diag = torch.diagonal(R_prime)
-    diag_sign_x = torch.sign(torch.diagonal(R_x))
+
+    # Ensure both factors have non-negative diagonals by absorbing sign into rows.
+    diag_sign = torch.where(
+            torch.diagonal(R_prime) < 0,
+            -torch.ones_like(torch.diagonal(R_prime)),
+            torch.ones_like(torch.diagonal(R_prime))
+            )
+    R_prime = R_prime * diag_sign.unsqueeze(1)
+
+    diag_sign_x = torch.where(
+            torch.diagonal(R_x) < 0,
+            -torch.ones_like(torch.diagonal(R_x)),
+            torch.ones_like(torch.diagonal(R_x))
+            )
     R_x = R_x * diag_sign_x.unsqueeze(1)
-    R = R_prime / diag.unsqueeze(1)
+
+    if normalize_hinv_diag:
+        diag = torch.diagonal(R_prime).clamp(min=1e-12)
+        R = R_prime / diag.unsqueeze(1)
+    else:
+        R = R_prime
 
     return R, R_x, perm
 
@@ -139,7 +156,8 @@ def process_hessian_alt(
 def process_hessian(
         H: torch.Tensor,
         actorder: bool = False,
-        damp_percent: float = 0.01
+        damp_percent: float = 0.01,
+        normalize_hinv_diag: bool = True
         ) -> Tuple[torch.Tensor, torch.Tensor]:
     H_double = H.to(dtype=torch.float64)
     n_features = H.shape[0]
@@ -172,8 +190,18 @@ def process_hessian(
     if H_inv_factor is None:
         logging.warning(" Hessian is singular. Using Identity fallback.")
         H_inv_factor = torch.eye(n_features, device=device, dtype=torch.float64)
-    H_inv_factor_diag = torch.diagonal(H_inv_factor)
-    H_inv_factor = H_inv_factor / H_inv_factor_diag.unsqueeze(1)
+
+    # Keep diagonal non-negative (Cholesky upper is typically already positive).
+    diag_sign = torch.where(
+            torch.diagonal(H_inv_factor) < 0,
+            -torch.ones_like(torch.diagonal(H_inv_factor)),
+            torch.ones_like(torch.diagonal(H_inv_factor))
+            )
+    H_inv_factor = H_inv_factor * diag_sign.unsqueeze(1)
+
+    if normalize_hinv_diag:
+        H_inv_factor_diag = torch.diagonal(H_inv_factor).clamp(min=1e-12)
+        H_inv_factor = H_inv_factor / H_inv_factor_diag.unsqueeze(1)
     return H_inv_factor, perm
 
 # ==============================================================================
@@ -382,17 +410,18 @@ def gptq_block_kernel(
         r_ptrs = R_ptr + (k * stride_r_row) + (offsets_cols * stride_r_col)
         r_row = tl.load(r_ptrs)
 
-        # diagonal element for scaling
-        #diag_mask = (offsets_cols == k)
-        #diag = tl.sum(r_row * diag_mask, axis=0)
-
-        #error = (w_col - q_val) / diag
+        # Keep raw error for output; in-block propagation scales by 1 / diag.
         error = w_col - q_val
         tl.store(e_out_ptrs, error, mask=mask_rows)
+        diag_mask = (offsets_cols == k)
+        diag = tl.sum(r_row * diag_mask, axis=0)
+        diag_abs = tl.abs(diag)
+        diag_safe = tl.where(diag_abs < 1e-12, 1e-12, diag)
+        correction_vec = r_row / diag_safe
 
         # error propogation
         err_broad = error[:, None]
-        corr_broad = r_row[None, :]
+        corr_broad = correction_vec[None, :]
         delta = err_broad * corr_broad
 
         # apply update to future columns

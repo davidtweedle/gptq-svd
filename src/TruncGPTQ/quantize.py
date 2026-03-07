@@ -195,7 +195,8 @@ def main():
                 R, perm = process_hessian(
                         H=H_matrix,
                         actorder=args.actorder,
-                        damp_percent=args.damp_percent
+                        damp_percent=args.damp_percent,
+                        normalize_hinv_diag=args.normalize_hinv_diag
                         )
                 shared_stats = {"R": R, "perm": perm, "had_mat": had_mat}
             elif args.mode == 'eigh':
@@ -205,7 +206,8 @@ def main():
                 R, R_x, perm = process_hessian_alt(
                         H=H_matrix,
                         threshold=current_eps,
-                        threshold_method=args.threshold_method
+                        threshold_method=args.threshold_method,
+                        normalize_hinv_diag=args.normalize_hinv_diag
                         )
                 shared_stats = {"R": R, "R_x": R_x, "perm": perm, "had_mat": had_mat}
             elif args.mode == 'test':

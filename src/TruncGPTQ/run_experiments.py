@@ -17,38 +17,39 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Grid:
-# eps in {1e-6, 1e-5, 1e-4}
+# Focused grid:
+# eps fixed at {1e-5}
+# normalize_hinv_diag in {True, False}
 # kernel_impl in {triton, cuda_lazy_reduce, cuda_immediate}
 # large_update_impl in {matmul, addmm}
-# seed in {43}  # keep 42 here as commented option if needed later
-for eps in [1e-6, 1e-5, 1e-4]:
-    for kernel_impl in ["triton", "cuda_lazy_reduce", "cuda_immediate"]:
-        for large_update_impl in ["matmul", "addmm"]:
-            for seed in [
-                # 42,
-                43,
-            ]:
-                experiments.append({
-                    "name": (
-                        f"Trunc_W4_Asym_{eps}_"
-                        f"{kernel_impl}_fp32_{large_update_impl}_seed{seed}"
-                    ),
-                    "mode": "eigh",
-                    "w_bits": 4,
-                    "group": 128,
-                    "sym": False,
-                    "algo": "TruncGPTQ",
-                    "adaptive_eps": False,
-                    "eps": eps,
-                    "batch_size": 32,
-                    "beta": 1.0,
-                    "rotate_weights": False,
-                    "kernel_impl": kernel_impl,
-                    "accum_dtype": "fp32",
-                    "large_update_impl": large_update_impl,
-                    "seed": seed,
-                })
+# seed in {42, 43}
+for eps in [1e-5]:
+    for normalize_hinv_diag in [True, False]:
+        for kernel_impl in ["triton", "cuda_lazy_reduce", "cuda_immediate"]:
+            for large_update_impl in ["matmul", "addmm"]:
+                for seed in [42, 43]:
+                    experiments.append({
+                        "name": (
+                            f"Trunc_W4_Asym_{eps}_"
+                            f"{'norm' if normalize_hinv_diag else 'no_norm'}_"
+                            f"{kernel_impl}_fp32_{large_update_impl}_seed{seed}"
+                        ),
+                        "mode": "eigh",
+                        "w_bits": 4,
+                        "group": 128,
+                        "sym": False,
+                        "algo": "TruncGPTQ",
+                        "adaptive_eps": False,
+                        "eps": eps,
+                        "batch_size": 32,
+                        "beta": 1.0,
+                        "rotate_weights": False,
+                        "kernel_impl": kernel_impl,
+                        "accum_dtype": "fp32",
+                        "large_update_impl": large_update_impl,
+                        "normalize_hinv_diag": normalize_hinv_diag,
+                        "seed": seed,
+                    })
 
 
 def run_command(cmd_list):
@@ -116,6 +117,8 @@ def main():
                 cmd.append("--sym")
             if exp.get("rotate_weights", False):
                 cmd.append("--rotate_weights")
+            if not exp.get("normalize_hinv_diag", True):
+                cmd.append("--no_normalize_hinv_diag")
         start_t = datetime.now()
         success = run_command(cmd)
         duration = (datetime.now() - start_t).total_seconds()

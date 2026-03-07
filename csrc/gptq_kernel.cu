@@ -20,6 +20,13 @@ __device__ __forceinline__ float quantize_val(
     return (q - zero) * scale;
 }
 
+__device__ __forceinline__ float safe_diag(float d) {
+    if (fabsf(d) < 1e-12f) {
+        return d >= 0.0f ? 1e-12f : -1e-12f;
+    }
+    return d;
+}
+
 template <typename T>
 __device__ __forceinline__ T warp_reduce_sum(T val) {
     #pragma unroll
@@ -48,10 +55,10 @@ __global__ void gptq_fused_kernel(
     extern __shared__ float sh_mem[];
     float* sh_H = sh_mem;
 
-    float err[32];
+    float err_scaled[32];
     #pragma unroll
     for (int i = 0; i < 32; ++i)
-        err[i] = 0.0f;
+        err_scaled[i] = 0.0f;
 
     for (int j = 0; j < block_cols; ++j) {
         float corr = 0.0f;
@@ -70,7 +77,7 @@ __global__ void gptq_fused_kernel(
                 int owner_lane = i % WARP;
                 int idx_in_lane = i / WARP;
 
-                float e_i = __shfl_sync(0xFFFFFFFF, err[idx_in_lane], owner_lane);
+                float e_i = __shfl_sync(0xFFFFFFFF, err_scaled[idx_in_lane], owner_lane);
                 float Hij = sh_H[i - i0];
 
                 corr = fmaf(e_i, Hij, corr);
@@ -87,10 +94,12 @@ __global__ void gptq_fused_kernel(
             float z = Zeros[(long long)row * block_cols + j];
 
             float q = quantize_val(w, s, z, qmin, qmax);
-            err[j / WARP] = w - q;
+            float raw_err = w - q;
+            float d = safe_diag(H_T[j * block_cols + j]);
+            err_scaled[j / WARP] = raw_err / d;
 
             W[(long long)row * total_cols + j_global] = q;
-            Err[(long long)row * total_cols + j_global] = err[j / WARP];
+            Err[(long long)row * total_cols + j_global] = raw_err;
         }
         __syncwarp();
     }
@@ -134,11 +143,13 @@ __global__ void gptq_fused_lazy_reduce_kernel(
             float s = Scales[(long long)row * block_cols + j];
             float z = Zeros[(long long)row * block_cols + j];
             float q = quantize_val(w, s, z, qmin, qmax);
-            float err = w - q;
+            float raw_err = w - q;
+            float d = safe_diag(H_T[j * block_cols + j]);
+            float err_scaled = raw_err / d;
 
-            sh_err_hist[j] = err;
+            sh_err_hist[j] = err_scaled;
             W[(long long)row * total_cols + j_global] = q;
-            Err[(long long)row * total_cols + j_global] = err;
+            Err[(long long)row * total_cols + j_global] = raw_err;
         }
         __syncwarp();
     }
@@ -171,9 +182,11 @@ __global__ void gptq_fused_immediate_kernel(
             float z = Zeros[(long long)row * block_cols + j];
             float q = quantize_val(w, s, z, qmin, qmax);
 
-            err_j = static_cast<AccT>(w - q);
+            float raw_err = w - q;
+            float d = safe_diag(H_T[j * block_cols + j]);
+            err_j = static_cast<AccT>(raw_err / d);
             W[(long long)row * total_cols + j_global] = q;
-            Err[(long long)row * total_cols + j_global] = static_cast<float>(err_j);
+            Err[(long long)row * total_cols + j_global] = raw_err;
         }
 
         err_j = __shfl_sync(0xFFFFFFFF, err_j, owner_lane);

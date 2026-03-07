@@ -124,6 +124,19 @@ def get_args():
             help="Damping fraction for reference gptq (default: 0.01)"
             )
     quant_group.add_argument(
+            "--normalize_hinv_diag",
+            dest="normalize_hinv_diag",
+            action="store_true",
+            help="Normalize H_inv_sqrt rows by their diagonal so diag(R)=1."
+            )
+    quant_group.add_argument(
+            "--no_normalize_hinv_diag",
+            dest="normalize_hinv_diag",
+            action="store_false",
+            help="Keep raw H_inv_sqrt diagonal (non-negative) without row normalization."
+            )
+    parser.set_defaults(normalize_hinv_diag=True)
+    quant_group.add_argument(
             "--adaptive_eps", action="store_true",
             help="Scale epsilon down by 10x for senstive layers (down_proj, o_proj)."
             )
