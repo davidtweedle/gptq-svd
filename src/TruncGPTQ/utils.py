@@ -77,6 +77,12 @@ def get_args():
             choices=["lazy", "regular"],
             help="Perplexity evaluation mode: memory-saving lazy path or regular full forward path."
             )
+    data_group.add_argument(
+            "--eval_batch_size",
+            type=int,
+            default=None,
+            help="Batch size for perplexity evaluation. Defaults to --batch_size when unset."
+            )
 
 
     # --- Quantization Configuration ---

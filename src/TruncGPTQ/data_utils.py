@@ -89,7 +89,7 @@ def get_c4(
     logging.info("Streaming C4 (en) (total samples: {n_samples})...")
     # load streaming
     data = load_dataset("allenai/c4", "en", split="train", streaming=True)
-    data = data.shuffle(seed=42, buffer_size=10000)
+    data = data.shuffle(seed=seed, buffer_size=10000)
 
     input_ids_list = []
     current_batch_samples = []

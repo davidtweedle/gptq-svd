@@ -11,6 +11,7 @@ MODEL_ID = "Qwen/Qwen3-8B"
 DATASET = "wikitext2"
 DEVICE = "cuda:0"
 EVAL_MODE = "regular"
+EVAL_BATCH_SIZE = 4
 
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
@@ -20,11 +21,14 @@ experiments = []
 # eps in {1e-6, 1e-5, 1e-4}
 # kernel_impl in {triton, cuda_lazy_reduce, cuda_immediate}
 # large_update_impl in {matmul, addmm}
-# seed in {42, 43}
+# seed in {43}  # keep 42 here as commented option if needed later
 for eps in [1e-6, 1e-5, 1e-4]:
     for kernel_impl in ["triton", "cuda_lazy_reduce", "cuda_immediate"]:
         for large_update_impl in ["matmul", "addmm"]:
-            for seed in [42, 43]:
+            for seed in [
+                # 42,
+                43,
+            ]:
                 experiments.append({
                     "name": (
                         f"Trunc_W4_Asym_{eps}_"
@@ -95,6 +99,8 @@ def main():
                 "--accum_dtype", exp.get("accum_dtype", "fp32"),
                 "--large_update_impl", exp.get("large_update_impl", "matmul"),
                 ]
+        if EVAL_BATCH_SIZE is not None:
+            cmd.extend(["--eval_batch_size", str(EVAL_BATCH_SIZE)])
         if exp["mode"] == "baseline":
             cmd.extend(["--mode", "baseline"])
         else:

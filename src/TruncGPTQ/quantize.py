@@ -51,6 +51,7 @@ def get_submodule(root, name):
 def main():
     args = get_args()
     setup_logging(args.save_path)
+    eval_batch_size = args.eval_batch_size if args.eval_batch_size is not None else args.batch_size
 
     log_header("INITIALIZING QUANTIZATION")
     logging.info(f"Model:  {args.model_id}")
@@ -75,7 +76,11 @@ def main():
     if args.mode == "baseline":
         log_header("BASELINE EVALUATION")
         ppl_baseline = eval_utils.evaluate_perplexity(
-                model, tokenizer, device=args.device, eval_mode=args.eval_mode
+                model,
+                tokenizer,
+                device=args.device,
+                batch_size=eval_batch_size,
+                eval_mode=args.eval_mode
                 )
         logging.info(f"Baseline PPL: {ppl_baseline:.2f}")
 
@@ -90,7 +95,9 @@ def main():
         return
 
     log_substep(f"Loading dataset: {args.dataset}")
-    input_ids_list = data_utils.get_loaders(args.dataset, tokenizer, args.n_samples, args.seq_len)
+    input_ids_list = data_utils.get_loaders(
+            args.dataset, tokenizer, args.n_samples, args.seq_len, args.seed
+            )
 
     log_substep("Capturing initial activations...")
     inps, layer_kwargs = model_utils.capture_initial_inputs(
@@ -302,7 +309,11 @@ def main():
     log_substep("Running final evaluation...")
 
     ppl_q = eval_utils.evaluate_perplexity(
-            model, tokenizer, device=args.device, eval_mode=args.eval_mode
+            model,
+            tokenizer,
+            device=args.device,
+            batch_size=eval_batch_size,
+            eval_mode=args.eval_mode
             )
     logging.info(f"Final Quantized PPL: {ppl_q:.4f}")
     experiment_log["metrics"] = {"total_time": total_duration, "quantized_ppl": ppl_q}
