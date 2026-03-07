@@ -21,13 +21,23 @@ def cleanup():
     gc.collect()
     torch.cuda.empty_cache()
 
+
+def _extract_logits(out):
+    if hasattr(out, "logits"):
+        return out.logits
+    if isinstance(out, tuple):
+        return out[0]
+    return out
+
+
 def evaluate_perplexity(
         model: nn.Module,
         tokenizer,
         dataset: str = "wikitext2",
         device: str = "cuda",
         batch_size: int = 4,
-        stride: int = 512
+        stride: int = 512,
+        eval_mode: str = "lazy"
         ) -> float:
     """
     Evaluates model perplexity on wikitext2 test set.
@@ -84,6 +94,45 @@ def evaluate_perplexity(
             tar = torch.cat([tar, torch.full((1, pad_len), -100)], dim=1)
         input_ids_list.append(inp)
         target_ids_list.append(tar)
+
+    if eval_mode == "regular":
+        logger.info("  [eval] Running regular full-forward evaluation path...")
+        model = model.to(device)
+        model.eval()
+        total_nll = 0.0
+        total_tokens = 0
+        loss_fct = nn.CrossEntropyLoss(ignore_index=-100, reduction="sum")
+        pbar = tqdm(range(0, len(input_ids_list), batch_size), desc="  [eval] Regular", leave=False)
+        for j in pbar:
+            end_idx = min(j + batch_size, len(input_ids_list))
+            input_batch = torch.cat(input_ids_list[j: end_idx], dim=0).to(device)
+            target_batch = torch.cat(target_ids_list[j: end_idx], dim=0).to(device)
+            with torch.no_grad():
+                out = model(input_ids=input_batch, use_cache=False)
+                logits = _extract_logits(out)
+
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = target_batch[..., 1:].contiguous()
+            num_active_tokens = (shift_labels != -100).sum().item()
+            if num_active_tokens > 0:
+                loss_sum = loss_fct(
+                        shift_logits.view(-1, shift_logits.size(-1)).float(),
+                        shift_labels.view(-1)
+                        )
+                total_nll += loss_sum.item()
+                total_tokens += num_active_tokens
+
+            del input_batch, target_batch, out, logits, shift_logits, shift_labels
+            cleanup()
+            if total_tokens > 0:
+                pbar.set_postfix({"ppl": f"{torch.exp(torch.tensor(total_nll / total_tokens)):.2f}"})
+
+        model = model.cpu()
+        cleanup()
+        if total_tokens == 0:
+            return float("nan")
+        return torch.exp(torch.tensor(total_nll / total_tokens)).item()
+
     logger.info("  [eval] Capturing embeddings...")
 
     hidden_states, layer_kwargs = model_utils.capture_initial_inputs(model, input_ids_list, device=device, batch_size=batch_size)

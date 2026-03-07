@@ -74,7 +74,9 @@ def main():
 
     if args.mode == "baseline":
         log_header("BASELINE EVALUATION")
-        ppl_baseline = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
+        ppl_baseline = eval_utils.evaluate_perplexity(
+                model, tokenizer, device=args.device, eval_mode=args.eval_mode
+                )
         logging.info(f"Baseline PPL: {ppl_baseline:.2f}")
 
         experiment_log["metrics"]["baseline_ppl"] = ppl_baseline
@@ -299,7 +301,9 @@ def main():
         logging.info("Skipping model weight save (--no_save was set).")
     log_substep("Running final evaluation...")
 
-    ppl_q = eval_utils.evaluate_perplexity(model, tokenizer, device=args.device)
+    ppl_q = eval_utils.evaluate_perplexity(
+            model, tokenizer, device=args.device, eval_mode=args.eval_mode
+            )
     logging.info(f"Final Quantized PPL: {ppl_q:.4f}")
     experiment_log["metrics"] = {"total_time": total_duration, "quantized_ppl": ppl_q}
     log_file = os.path.join(args.save_path, "results.json")

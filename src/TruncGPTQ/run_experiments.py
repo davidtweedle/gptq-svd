@@ -10,78 +10,41 @@ SCRIPT_PATH = "quantize.py"
 MODEL_ID = "Qwen/Qwen3-8B"
 DATASET = "wikitext2"
 DEVICE = "cuda:0"
+EVAL_MODE = "regular"
 
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Focused full-model comparison: CUDA lazy-reduce vs CUDA immediate.
-experiments.extend([
-    {
-        "name": "Trunc_W4_Asym_1e-5_cuda_lazy_reduce_fp32_matmul",
-        "mode": "eigh",
-        "w_bits": 4,
-        "group": 128,
-        "sym": False,
-        "algo": "TruncGPTQ",
-        "adaptive_eps": False,
-        "eps": 1e-5,
-        "batch_size": 32,
-        "beta": 1.0,
-        "rotate_weights": False,
-        "kernel_impl": "cuda_lazy_reduce",
-        "accum_dtype": "fp32",
-        "large_update_impl": "matmul",
-    },
-    {
-        "name": "Trunc_W4_Asym_1e-5_cuda_immediate_fp32_matmul",
-        "mode": "eigh",
-        "w_bits": 4,
-        "group": 128,
-        "sym": False,
-        "algo": "TruncGPTQ",
-        "adaptive_eps": False,
-        "eps": 1e-5,
-        "batch_size": 32,
-        "beta": 1.0,
-        "rotate_weights": False,
-        "kernel_impl": "cuda_immediate",
-        "accum_dtype": "fp32",
-        "large_update_impl": "matmul",
-    },
-    {
-        "name": "Trunc_W4_Asym_1e-5_cuda_lazy_reduce_fp32_addmm",
-        "mode": "eigh",
-        "w_bits": 4,
-        "group": 128,
-        "sym": False,
-        "algo": "TruncGPTQ",
-        "adaptive_eps": False,
-        "eps": 1e-5,
-        "batch_size": 32,
-        "beta": 1.0,
-        "rotate_weights": False,
-        "kernel_impl": "cuda_lazy_reduce",
-        "accum_dtype": "fp32",
-        "large_update_impl": "addmm",
-    },
-    {
-        "name": "Trunc_W4_Asym_1e-5_cuda_immediate_fp32_addmm",
-        "mode": "eigh",
-        "w_bits": 4,
-        "group": 128,
-        "sym": False,
-        "algo": "TruncGPTQ",
-        "adaptive_eps": False,
-        "eps": 1e-5,
-        "batch_size": 32,
-        "beta": 1.0,
-        "rotate_weights": False,
-        "kernel_impl": "cuda_immediate",
-        "accum_dtype": "fp32",
-        "large_update_impl": "addmm",
-    },
-])
+# Grid:
+# eps in {1e-6, 1e-5, 1e-4}
+# kernel_impl in {triton, cuda_lazy_reduce, cuda_immediate}
+# large_update_impl in {matmul, addmm}
+# seed in {42, 43}
+for eps in [1e-6, 1e-5, 1e-4]:
+    for kernel_impl in ["triton", "cuda_lazy_reduce", "cuda_immediate"]:
+        for large_update_impl in ["matmul", "addmm"]:
+            for seed in [42, 43]:
+                experiments.append({
+                    "name": (
+                        f"Trunc_W4_Asym_{eps}_"
+                        f"{kernel_impl}_fp32_{large_update_impl}_seed{seed}"
+                    ),
+                    "mode": "eigh",
+                    "w_bits": 4,
+                    "group": 128,
+                    "sym": False,
+                    "algo": "TruncGPTQ",
+                    "adaptive_eps": False,
+                    "eps": eps,
+                    "batch_size": 32,
+                    "beta": 1.0,
+                    "rotate_weights": False,
+                    "kernel_impl": kernel_impl,
+                    "accum_dtype": "fp32",
+                    "large_update_impl": large_update_impl,
+                    "seed": seed,
+                })
 
 
 def run_command(cmd_list):
@@ -121,6 +84,8 @@ def main():
                 "--dataset", DATASET,
                 "--save_path", str(save_path),
                 "--device", DEVICE,
+                "--seed", str(exp.get("seed", 42)),
+                "--eval_mode", EVAL_MODE,
                 "--batch_size", str(exp['batch_size']),
                 "--threshold_method", "energy",
                 "--sketch_ratio", "1.0",
