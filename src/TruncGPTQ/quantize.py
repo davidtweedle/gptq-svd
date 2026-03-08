@@ -16,7 +16,8 @@ import had_utils
 from gptq_utils import gptq_fwrd, gptq_fwrd_fp32_ref, Quantizer, Sketcher, process_sketch, process_hessian, process_hessian_alt, HessianAccumulator
 from model_utils import prepare_batch_kwargs
 from qronos_collect import QronosPairCollector, PairedInputHook
-from qronos_update import qronos_single_layer_update
+from qronos_update_opt import qronos_single_layer_update_opt
+from qronos_update_ref import qronos_single_layer_update_ref
 
 def get_adaptive_eps(layer_name, base_eps):
     if any(x in layer_name for x in ["down_proj", "o_proj"]):
@@ -65,6 +66,12 @@ def build_dequant_fn_from_quantizer(quantizer: Quantizer, weight_ref: torch.Tens
     return _quant_fn
 
 
+def select_qronos_update_fn(args):
+    if args.qronos_impl == "opt":
+        return qronos_single_layer_update_opt
+    return qronos_single_layer_update_ref
+
+
 def run_layer_capture_pass(layer, inps, layer_kwargs, args):
     for j in range(0, args.n_samples, args.batch_size):
         batch_inp = inps[j: j + args.batch_size].to(args.device)
@@ -100,6 +107,7 @@ def main():
     torch.manual_seed(args.seed)
     torch.set_grad_enabled(False)
     cleanup()
+    qronos_update_fn = select_qronos_update_fn(args)
 
     experiment_log = {
             "config": vars(args),
@@ -220,7 +228,7 @@ def main():
                 solve_start = time.time()
                 W_work = W @ had_mat.to(torch.float32)
                 quant_fn = build_dequant_fn_from_quantizer(quantizer, W_work)
-                final_W, _ = qronos_single_layer_update(
+                final_W, _ = qronos_update_fn(
                         weight=W_work,
                         weight_orig=W_work.clone(),
                         H=stats.H,

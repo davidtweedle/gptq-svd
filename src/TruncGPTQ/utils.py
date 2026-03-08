@@ -187,6 +187,13 @@ def get_args():
             default=128,
             help="Qronos block size for step-2+ correction."
             )
+    quant_group.add_argument(
+            "--qronos_impl",
+            type=str,
+            default="ref",
+            choices=["ref", "opt"],
+            help="Qronos implementation track: faithful reference or optimization entry-point."
+            )
 
     # --- Output Configuration ---
     out_group = parser.add_argument_group("Output Configuration")
