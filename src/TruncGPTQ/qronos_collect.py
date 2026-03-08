@@ -30,7 +30,12 @@ class QronosPairCollector:
     G := Xf^T Xq
     """
 
-    def __init__(self, layer: nn.Linear, dtype: torch.dtype = torch.float32):
+    def __init__(
+            self,
+            layer: nn.Linear,
+            dtype: torch.dtype = torch.float32,
+            had_mat: Optional[torch.Tensor] = None
+            ):
         self.layer = layer
         self.dtype = dtype
         self.in_features = layer.in_features
@@ -39,9 +44,16 @@ class QronosPairCollector:
         self.G = torch.zeros((self.in_features, self.in_features), device=dev, dtype=dtype)
         self.nsamples = 0
         self._pending_quant_input: Optional[torch.Tensor] = None
+        self.had_mat = had_mat.to(device=dev, dtype=dtype) if had_mat is not None else None
+
+    def _prep_input(self, x: torch.Tensor) -> torch.Tensor:
+        x = _flatten_inputs(x.detach()).to(device=self.H.device, dtype=self.dtype)
+        if self.had_mat is not None:
+            x = x.matmul(self.had_mat)
+        return x
 
     def add_quant_input(self, x_quant: torch.Tensor) -> None:
-        xq = _flatten_inputs(x_quant.detach()).to(device=self.H.device, dtype=self.dtype)
+        xq = self._prep_input(x_quant)
         self.H.addmm_(xq.T, xq)
         self.nsamples += xq.shape[0]
         self._pending_quant_input = xq
@@ -49,7 +61,7 @@ class QronosPairCollector:
     def add_float_input(self, x_float: torch.Tensor) -> None:
         if self._pending_quant_input is None:
             raise RuntimeError("add_float_input called before matching add_quant_input")
-        xf = _flatten_inputs(x_float.detach()).to(device=self.H.device, dtype=self.dtype)
+        xf = self._prep_input(x_float)
         if xf.shape != self._pending_quant_input.shape:
             raise RuntimeError(
                 "Mismatched quant/float input shapes: "

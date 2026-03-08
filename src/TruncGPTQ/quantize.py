@@ -15,6 +15,8 @@ import eval_utils
 import had_utils
 from gptq_utils import gptq_fwrd, gptq_fwrd_fp32_ref, Quantizer, Sketcher, process_sketch, process_hessian, process_hessian_alt, HessianAccumulator
 from model_utils import prepare_batch_kwargs
+from qronos_collect import QronosPairCollector, PairedInputHook
+from qronos_update import qronos_single_layer_update
 
 def get_adaptive_eps(layer_name, base_eps):
     if any(x in layer_name for x in ["down_proj", "o_proj"]):
@@ -46,6 +48,43 @@ def get_submodule(root, name):
     for p in parts:
         curr = getattr(curr, p)
     return curr
+
+
+def build_dequant_fn_from_quantizer(quantizer: Quantizer, weight_ref: torch.Tensor):
+    m, n = weight_ref.shape
+    quantizer.find_params(weight_ref)
+    scale, zero = quantizer.get_expanded_params(m, n)
+    scale = scale.to(device=weight_ref.device, dtype=torch.float32)
+    zero = zero.to(device=weight_ref.device, dtype=torch.float32)
+
+    def _quant_fn(w: torch.Tensor) -> torch.Tensor:
+        x = w.to(dtype=torch.float32)
+        q = torch.round(x / scale + zero).clamp(quantizer.min_q, quantizer.max_q)
+        return (q - zero) * scale
+
+    return _quant_fn
+
+
+def run_layer_capture_pass(layer, inps, layer_kwargs, args):
+    for j in range(0, args.n_samples, args.batch_size):
+        batch_inp = inps[j: j + args.batch_size].to(args.device)
+        batch_kwargs = {k: prepare_batch_kwargs(v, args.device) for k, v in layer_kwargs.items()}
+        batch_kwargs["use_cache"] = False
+        layer(batch_inp, **batch_kwargs)
+        del batch_inp, batch_kwargs
+        cleanup()
+
+
+def snapshot_named_weights(layer, names):
+    return {
+            name: get_submodule(layer, name).weight.data.detach().clone()
+            for name in names
+            }
+
+
+def load_named_weights(layer, state):
+    for name, weight in state.items():
+        get_submodule(layer, name).weight.data.copy_(weight)
 
 
 def main():
@@ -115,10 +154,98 @@ def main():
         layer = layer.to(args.device)
 
         groups = model_utils.get_sequenced_groups(layer)
+        qronos_float_state = None
+        qronos_quant_state = None
+        if args.mode == "qronos":
+            ordered = [n for g in groups for n in g]
+            groups = [[n] for n in ordered]
+            qronos_float_state = snapshot_named_weights(layer, ordered)
+            qronos_quant_state = snapshot_named_weights(layer, ordered)
 
         for group_idx, group_names in enumerate(groups):
             logging.info(f"[{prefix}] Group {group_idx + 1}: {', '.join(group_names)}")
             name = group_names[0]
+            if args.mode == "qronos":
+                submodule = get_submodule(layer, name)
+                out_features, in_features = submodule.weight.shape
+                had_mat = None
+                if args.rotate_weights:
+                    if args.group_size == -1:
+                        group_size = in_features
+                        num_blocks = 1
+                    else:
+                        group_size = args.group_size
+                        num_blocks = in_features // group_size
+                    had_mat_block = torch.tensor(
+                            had_utils.had_order_n(group_size),
+                            device=args.device,
+                            dtype=torch.float64
+                            ) * (group_size ** -0.5)
+                    if num_blocks == 1:
+                        had_mat = had_mat_block
+                    else:
+                        had_mat = torch.block_diag(*had_mat_block.unsqueeze(0).repeat(num_blocks, 1, 1))
+                else:
+                    had_mat = torch.eye(in_features, device=args.device, dtype=torch.float64)
+
+                collector = QronosPairCollector(
+                        submodule,
+                        dtype=torch.float32,
+                        had_mat=had_mat.to(torch.float32)
+                        )
+
+                # Quantized-progress pass: captures X_quant
+                load_named_weights(layer, qronos_quant_state)
+                hq = submodule.register_forward_hook(PairedInputHook(collector, mode="quant"))
+                run_layer_capture_pass(layer, inps, layer_kwargs, args)
+                hq.remove()
+
+                # Float-reference pass: captures X_float
+                load_named_weights(layer, qronos_float_state)
+                hf = submodule.register_forward_hook(PairedInputHook(collector, mode="float"))
+                run_layer_capture_pass(layer, inps, layer_kwargs, args)
+                hf.remove()
+
+                # Restore quantized-progress state before solving/updating.
+                load_named_weights(layer, qronos_quant_state)
+                stats = collector.finalize(normalize_running_avg=True)
+
+                W = submodule.weight.data.float()
+                quantizer = Quantizer(
+                        w_bits=args.w_bits,
+                        group_size=args.group_size,
+                        sym=args.sym,
+                        beta=args.beta
+                        )
+                solve_start = time.time()
+                W_work = W @ had_mat.to(torch.float32)
+                quant_fn = build_dequant_fn_from_quantizer(quantizer, W_work)
+                final_W, _ = qronos_single_layer_update(
+                        weight=W_work,
+                        weight_orig=W_work.clone(),
+                        H=stats.H,
+                        G=stats.G,
+                        quant_fn=quant_fn,
+                        actorder=args.actorder,
+                        alpha=args.qronos_alpha,
+                        beta=args.qronos_beta,
+                        blocksize=args.qronos_blocksize,
+                        return_debug=False
+                        )
+                final_W = final_W @ had_mat.to(torch.float32).T
+                submodule.weight.copy_(final_W)
+                qronos_quant_state[name] = submodule.weight.data.detach().clone()
+
+                solve_time = time.time() - solve_start
+                logging.info(
+                        f"   {name: <15} | NSamples: {stats.nsamples: <6} | Time: {solve_time:.2f}s"
+                        )
+                experiment_log["layer_stats"].append(
+                        {"name": f"layer_{i}.{name}", "rank": "qronos", "time": solve_time}
+                        )
+                cleanup()
+                continue
+
             if args.adaptive_eps:
                 current_eps = get_adaptive_eps(name, args.eps)
                 logging.info(f"    Using adaptive eps: {current_eps:.1e}")
@@ -145,7 +272,7 @@ def main():
                 rank = int(in_features * args.sketch_ratio)
                 accumulator = Sketcher(submodule, rank, device=args.device, had_mat=had_mat)
                 handles.append(submodule.register_forward_hook(accumulator.hook_fn))
-            elif args.mode == "gptq" or args.mode == "eigh":
+            elif args.mode in {"gptq", "eigh"}:
                 accumulator = HessianAccumulator(in_features, device=args.device, had_mat=had_mat)
                 def h_hook(module, inp, out):
                     accumulator.add_batch(inp[0].detach())

@@ -108,7 +108,7 @@ def get_args():
             help="Ratio of sketch size to input dimension (d = ratio * n)"
             )
     quant_group.add_argument(
-            "--mode", type=str, choices=["svd", "gptq", "eigh", "test", "baseline"], default="svd",
+            "--mode", type=str, choices=["svd", "gptq", "eigh", "qronos", "test", "baseline"], default="svd",
             help="Quantization Strategy: 'svd' (Ours), 'gptq' (Reference), or 'baseline' (RTN)"
             )
     quant_group.add_argument(
@@ -168,6 +168,24 @@ def get_args():
             default="matmul",
             choices=["matmul", "addmm"],
             help="Implementation for cross-block large updates."
+            )
+    quant_group.add_argument(
+            "--qronos_alpha",
+            type=float,
+            default=1e-6,
+            help="Qronos damping scale alpha for inverse stabilization."
+            )
+    quant_group.add_argument(
+            "--qronos_beta",
+            type=float,
+            default=1e4,
+            help="Qronos beta scaling for Cholesky stabilization."
+            )
+    quant_group.add_argument(
+            "--qronos_blocksize",
+            type=int,
+            default=128,
+            help="Qronos block size for step-2+ correction."
             )
 
     # --- Output Configuration ---
