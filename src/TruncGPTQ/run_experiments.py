@@ -12,24 +12,26 @@ DATASET = "wikitext2"
 DEVICE = "cuda:0"
 EVAL_MODE = "regular"
 EVAL_BATCH_SIZE = 4
-SEEDS = [42, 43]
+SEEDS = [40, 41, 42, 43, 44]
 
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Six selected settings (fp32), plus fp64 variants for CUDA settings only.
+# Final shortlist for robustness check:
+# - norm + cuda_lazy_reduce + fp32 + matmul
+# - norm + triton + fp32 + addmm
+# - norm + cuda_immediate + fp32 + matmul
+# - norm + cuda_immediate + fp32 + addmm
 SELECTED_SETTINGS = [
-    {"normalize_hinv_diag": True, "kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
-    {"normalize_hinv_diag": True, "kernel_impl": "triton", "large_update_impl": "addmm"},
-    {"normalize_hinv_diag": False, "kernel_impl": "cuda_lazy_reduce", "large_update_impl": "addmm"},
     {"normalize_hinv_diag": True, "kernel_impl": "cuda_lazy_reduce", "large_update_impl": "matmul"},
-    {"normalize_hinv_diag": False, "kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
+    {"normalize_hinv_diag": True, "kernel_impl": "triton", "large_update_impl": "addmm"},
+    {"normalize_hinv_diag": True, "kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
     {"normalize_hinv_diag": True, "kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
 ]
 
 for cfg in SELECTED_SETTINGS:
-    accum_dtypes = ["fp32", "fp64"] if cfg["kernel_impl"].startswith("cuda_") else ["fp32"]
+    accum_dtypes = ["fp32"]
     for accum_dtype in accum_dtypes:
         for seed in SEEDS:
             experiments.append({
