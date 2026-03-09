@@ -18,42 +18,62 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Final shortlist for robustness check:
-# - norm + cuda_lazy_reduce + fp32 + matmul
-# - norm + triton + fp32 + addmm
-# - norm + cuda_immediate + fp32 + matmul
-# - norm + cuda_immediate + fp32 + addmm
-SELECTED_SETTINGS = [
-    {"normalize_hinv_diag": True, "kernel_impl": "cuda_lazy_reduce", "large_update_impl": "matmul"},
-    {"normalize_hinv_diag": True, "kernel_impl": "triton", "large_update_impl": "addmm"},
-    {"normalize_hinv_diag": True, "kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
-    {"normalize_hinv_diag": True, "kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
-]
+# Section A: TruncGPTQ block-size sweep around best config
+for block_size in [256, 512, 1024, 2048]:
+    for seed in SEEDS:
+        experiments.append({
+            "name": (
+                f"Trunc_W4_Asym_1e-05_norm_cuda_immediate_fp32_addmm_"
+                f"block{block_size}_seed{seed}"
+            ),
+            "section": "trunc_block",
+            "mode": "eigh",
+            "w_bits": 4,
+            "group": 128,
+            "sym": False,
+            "algo": "TruncGPTQ",
+            "adaptive_eps": False,
+            "eps": 1e-5,
+            "batch_size": 32,
+            "beta": 1.0,
+            "rotate_weights": False,
+            "kernel_impl": "cuda_immediate",
+            "accum_dtype": "fp32",
+            "large_update_impl": "addmm",
+            "normalize_hinv_diag": True,
+            "block_size": block_size,
+            "seed": seed,
+        })
 
-for cfg in SELECTED_SETTINGS:
-    accum_dtypes = ["fp32"]
-    for accum_dtype in accum_dtypes:
+# Section B: GPTQ damp sweep (CUDA immediate+addmm vs plain python)
+for damp_percent in [0.001, 0.01, 0.1]:
+    for impl in [
+        {"kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
+        {"kernel_impl": "python", "large_update_impl": "matmul"},
+    ]:
         for seed in SEEDS:
             experiments.append({
                 "name": (
-                    "Trunc_W4_Asym_1e-05_"
-                    f"{'norm' if cfg['normalize_hinv_diag'] else 'no_norm'}_"
-                    f"{cfg['kernel_impl']}_{accum_dtype}_{cfg['large_update_impl']}_seed{seed}"
+                    f"GPTQ_W4_Asym_damp{damp_percent}_{impl['kernel_impl']}_"
+                    f"{impl['large_update_impl']}_seed{seed}"
                 ),
-                "mode": "eigh",
+                "section": "gptq_damp",
+                "mode": "gptq",
                 "w_bits": 4,
                 "group": 128,
                 "sym": False,
-                "algo": "TruncGPTQ",
+                "algo": "GPTQ",
                 "adaptive_eps": False,
                 "eps": 1e-5,
                 "batch_size": 32,
                 "beta": 1.0,
                 "rotate_weights": False,
-                "kernel_impl": cfg["kernel_impl"],
-                "accum_dtype": accum_dtype,
-                "large_update_impl": cfg["large_update_impl"],
-                "normalize_hinv_diag": cfg["normalize_hinv_diag"],
+                "kernel_impl": impl["kernel_impl"],
+                "accum_dtype": "fp32",
+                "large_update_impl": impl["large_update_impl"],
+                "normalize_hinv_diag": True,
+                "damp_percent": damp_percent,
+                "block_size": 1024,
                 "seed": seed,
             })
 
@@ -105,6 +125,7 @@ def main():
                 "--kernel_impl", exp.get("kernel_impl", "triton"),
                 "--accum_dtype", exp.get("accum_dtype", "fp32"),
                 "--large_update_impl", exp.get("large_update_impl", "matmul"),
+                "--block_size", str(exp.get("block_size", 1024)),
                 ]
         if EVAL_BATCH_SIZE is not None:
             cmd.extend(["--eval_batch_size", str(EVAL_BATCH_SIZE)])
@@ -119,6 +140,8 @@ def main():
                 cmd.extend(["--eps", str(exp['eps'])])
                 if exp.get("adaptive_eps", False):
                     cmd.append("--adaptive_eps")
+            if exp["mode"] == "gptq":
+                cmd.extend(["--damp_percent", str(exp.get("damp_percent", 0.01))])
             if exp.get("sym", False):
                 cmd.append("--sym")
             if exp.get("rotate_weights", False):

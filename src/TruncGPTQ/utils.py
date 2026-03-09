@@ -170,6 +170,12 @@ def get_args():
             help="Implementation for cross-block large updates."
             )
     quant_group.add_argument(
+            "--block_size",
+            type=int,
+            default=1024,
+            help="Block size for GPTQ/TruncGPTQ inner block quantization."
+            )
+    quant_group.add_argument(
             "--qronos_alpha",
             type=float,
             default=1e-6,
