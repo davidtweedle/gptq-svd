@@ -27,7 +27,7 @@ for impl in [
     for seed in SEEDS:
         experiments.append({
             "name": (
-                f"Trunc_W4_Sym_1e-05_norm_{impl['kernel_impl']}_fp32_"
+                f"Trunc_W4_Sym_1e-04_norm_{impl['kernel_impl']}_fp32_"
                 f"{impl['large_update_impl']}_block1024_seed{seed}"
             ),
             "section": "trunc_kernel_sym",
@@ -37,7 +37,7 @@ for impl in [
             "sym": True,
             "algo": "TruncGPTQ",
             "adaptive_eps": False,
-            "eps": 1e-5,
+            "eps": 1e-4,
             "batch_size": 32,
             "beta": 1.0,
             "rotate_weights": False,
