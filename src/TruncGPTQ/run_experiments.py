@@ -18,36 +18,39 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Section A: TruncGPTQ symmetric kernel screening at fixed block size
-for impl in [
-    {"kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
-    {"kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
-    {"kernel_impl": "triton", "large_update_impl": "addmm"},
-]:
-    for seed in SEEDS:
-        experiments.append({
-            "name": (
-                f"Trunc_W4_Sym_1e-04_norm_{impl['kernel_impl']}_fp32_"
-                f"{impl['large_update_impl']}_block1024_seed{seed}"
-            ),
-            "section": "trunc_kernel_sym",
-            "mode": "eigh",
-            "w_bits": 4,
-            "group": 128,
-            "sym": True,
-            "algo": "TruncGPTQ",
-            "adaptive_eps": False,
-            "eps": 1e-4,
-            "batch_size": 32,
-            "beta": 1.0,
-            "rotate_weights": False,
-            "kernel_impl": impl["kernel_impl"],
-            "accum_dtype": "fp32",
-            "large_update_impl": impl["large_update_impl"],
-            "normalize_hinv_diag": True,
-            "block_size": 1024,
-            "seed": seed,
-        })
+# Section A: TruncGPTQ symmetric backend/normalization sweep at fixed block size
+for normalize_hinv_diag in [True, False]:
+    norm_tag = "norm" if normalize_hinv_diag else "nonorm"
+    for impl in [
+        {"kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
+        {"kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
+        {"kernel_impl": "triton", "large_update_impl": "addmm"},
+        {"kernel_impl": "triton", "large_update_impl": "matmul"},
+    ]:
+        for seed in SEEDS:
+            experiments.append({
+                "name": (
+                    f"Trunc_W4_Sym_1e-04_{norm_tag}_{impl['kernel_impl']}_fp32_"
+                    f"{impl['large_update_impl']}_block1024_seed{seed}"
+                ),
+                "section": "trunc_backend_norm_sym",
+                "mode": "eigh",
+                "w_bits": 4,
+                "group": 128,
+                "sym": True,
+                "algo": "TruncGPTQ",
+                "adaptive_eps": False,
+                "eps": 1e-4,
+                "batch_size": 32,
+                "beta": 1.0,
+                "rotate_weights": False,
+                "kernel_impl": impl["kernel_impl"],
+                "accum_dtype": "fp32",
+                "large_update_impl": impl["large_update_impl"],
+                "normalize_hinv_diag": normalize_hinv_diag,
+                "block_size": 1024,
+                "seed": seed,
+            })
 
 
 def run_command(cmd_list):
