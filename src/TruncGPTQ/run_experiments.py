@@ -18,64 +18,36 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Section A: TruncGPTQ block-size sweep around best config
-for block_size in [256, 512, 1024, 2048]:
+# Section A: TruncGPTQ symmetric kernel screening at fixed block size
+for impl in [
+    {"kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
+    {"kernel_impl": "cuda_immediate", "large_update_impl": "matmul"},
+    {"kernel_impl": "triton", "large_update_impl": "addmm"},
+]:
     for seed in SEEDS:
         experiments.append({
             "name": (
-                f"Trunc_W4_Asym_1e-05_norm_cuda_immediate_fp32_addmm_"
-                f"block{block_size}_seed{seed}"
+                f"Trunc_W4_Sym_1e-05_norm_{impl['kernel_impl']}_fp32_"
+                f"{impl['large_update_impl']}_block1024_seed{seed}"
             ),
-            "section": "trunc_block",
+            "section": "trunc_kernel_sym",
             "mode": "eigh",
             "w_bits": 4,
             "group": 128,
-            "sym": False,
+            "sym": True,
             "algo": "TruncGPTQ",
             "adaptive_eps": False,
             "eps": 1e-5,
             "batch_size": 32,
             "beta": 1.0,
             "rotate_weights": False,
-            "kernel_impl": "cuda_immediate",
+            "kernel_impl": impl["kernel_impl"],
             "accum_dtype": "fp32",
-            "large_update_impl": "addmm",
+            "large_update_impl": impl["large_update_impl"],
             "normalize_hinv_diag": True,
-            "block_size": block_size,
+            "block_size": 1024,
             "seed": seed,
         })
-
-# Section B: GPTQ damp sweep (CUDA immediate+addmm vs plain python)
-for damp_percent in [0.001, 0.01, 0.1]:
-    for impl in [
-        {"kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
-        {"kernel_impl": "python", "large_update_impl": "matmul"},
-    ]:
-        for seed in SEEDS:
-            experiments.append({
-                "name": (
-                    f"GPTQ_W4_Asym_damp{damp_percent}_{impl['kernel_impl']}_"
-                    f"{impl['large_update_impl']}_seed{seed}"
-                ),
-                "section": "gptq_damp",
-                "mode": "gptq",
-                "w_bits": 4,
-                "group": 128,
-                "sym": False,
-                "algo": "GPTQ",
-                "adaptive_eps": False,
-                "eps": 1e-5,
-                "batch_size": 32,
-                "beta": 1.0,
-                "rotate_weights": False,
-                "kernel_impl": impl["kernel_impl"],
-                "accum_dtype": "fp32",
-                "large_update_impl": impl["large_update_impl"],
-                "normalize_hinv_diag": True,
-                "damp_percent": damp_percent,
-                "block_size": 1024,
-                "seed": seed,
-            })
 
 
 def run_command(cmd_list):
