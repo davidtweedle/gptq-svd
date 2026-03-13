@@ -18,32 +18,32 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Section A: TruncGPTQ symmetric sweep for cuda_immediate/addmm without fast math
-for block_size in [512, 1024]:
-    for seed in SEEDS:
-        experiments.append({
-            "name": (
-                f"Trunc_W4_Sym_1e-05_norm_cuda_immediate_fp32_"
-                f"addmm_block{block_size}_seed{seed}"
-            ),
-            "section": "trunc_block_sym",
-            "mode": "eigh",
-            "w_bits": 4,
-            "group": 128,
-            "sym": True,
-            "algo": "TruncGPTQ",
-            "adaptive_eps": False,
-            "eps": 1e-5,
-            "batch_size": 32,
-            "beta": 1.0,
-            "rotate_weights": False,
-            "kernel_impl": "cuda_immediate",
-            "accum_dtype": "fp32",
-            "large_update_impl": "addmm",
-            "normalize_hinv_diag": True,
-            "block_size": block_size,
-            "seed": seed,
-        })
+# Section A: GPTQ symmetric damping sweep for python vs cuda_immediate
+for kernel_impl in ["python", "cuda_immediate"]:
+    for damp_percent in [0.001, 0.01, 0.1]:
+        for seed in SEEDS:
+            experiments.append({
+                "name": (
+                    f"GPTQ_W4_Sym_damp{damp_percent}_"
+                    f"{kernel_impl}_fp32_addmm_block512_seed{seed}"
+                ),
+                "section": "gptq_damp_sym",
+                "mode": "gptq",
+                "w_bits": 4,
+                "group": 128,
+                "sym": True,
+                "algo": "GPTQ",
+                "batch_size": 32,
+                "beta": 1.0,
+                "rotate_weights": False,
+                "kernel_impl": kernel_impl,
+                "accum_dtype": "fp32",
+                "large_update_impl": "addmm",
+                "normalize_hinv_diag": True,
+                "block_size": 512,
+                "damp_percent": damp_percent,
+                "seed": seed,
+            })
 
 
 def run_command(cmd_list):
