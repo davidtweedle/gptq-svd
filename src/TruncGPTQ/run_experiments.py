@@ -18,36 +18,32 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Section A: TruncGPTQ symmetric block-size sweep on the two best branches
-for impl in [
-    {"kernel_impl": "triton", "large_update_impl": "matmul"},
-    {"kernel_impl": "cuda_immediate", "large_update_impl": "addmm"},
-]:
-    for block_size in [256, 512, 1024, 2048]:
-        for seed in SEEDS:
-            experiments.append({
-                "name": (
-                    f"Trunc_W4_Sym_1e-05_norm_{impl['kernel_impl']}_fp32_"
-                    f"{impl['large_update_impl']}_block{block_size}_seed{seed}"
-                ),
-                "section": "trunc_block_sym",
-                "mode": "eigh",
-                "w_bits": 4,
-                "group": 128,
-                "sym": True,
-                "algo": "TruncGPTQ",
-                "adaptive_eps": False,
-                "eps": 1e-5,
-                "batch_size": 32,
-                "beta": 1.0,
-                "rotate_weights": False,
-                "kernel_impl": impl["kernel_impl"],
-                "accum_dtype": "fp32",
-                "large_update_impl": impl["large_update_impl"],
-                "normalize_hinv_diag": True,
-                "block_size": block_size,
-                "seed": seed,
-            })
+# Section A: TruncGPTQ symmetric sweep for cuda_immediate/addmm without fast math
+for block_size in [512, 1024]:
+    for seed in SEEDS:
+        experiments.append({
+            "name": (
+                f"Trunc_W4_Sym_1e-05_norm_cuda_immediate_fp32_"
+                f"addmm_block{block_size}_seed{seed}"
+            ),
+            "section": "trunc_block_sym",
+            "mode": "eigh",
+            "w_bits": 4,
+            "group": 128,
+            "sym": True,
+            "algo": "TruncGPTQ",
+            "adaptive_eps": False,
+            "eps": 1e-5,
+            "batch_size": 32,
+            "beta": 1.0,
+            "rotate_weights": False,
+            "kernel_impl": "cuda_immediate",
+            "accum_dtype": "fp32",
+            "large_update_impl": "addmm",
+            "normalize_hinv_diag": True,
+            "block_size": block_size,
+            "seed": seed,
+        })
 
 
 def run_command(cmd_list):
