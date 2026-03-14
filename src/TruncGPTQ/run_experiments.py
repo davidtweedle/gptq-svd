@@ -18,32 +18,42 @@ TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
 experiments = []
 
-# Section A: GPTQ symmetric damping sweep for python vs cuda_immediate
-for kernel_impl in ["python", "cuda_immediate"]:
-    for damp_percent in [0.001, 0.01, 0.1]:
-        for seed in SEEDS:
-            experiments.append({
-                "name": (
-                    f"GPTQ_W4_Sym_damp{damp_percent}_"
-                    f"{kernel_impl}_fp32_addmm_block512_seed{seed}"
-                ),
-                "section": "gptq_damp_sym",
-                "mode": "gptq",
-                "w_bits": 4,
-                "group": 128,
-                "sym": True,
-                "algo": "GPTQ",
-                "batch_size": 32,
-                "beta": 1.0,
-                "rotate_weights": False,
-                "kernel_impl": kernel_impl,
-                "accum_dtype": "fp32",
-                "large_update_impl": "addmm",
-                "normalize_hinv_diag": True,
-                "block_size": 512,
-                "damp_percent": damp_percent,
-                "seed": seed,
-            })
+# Best tuned GPTQ baseline so far for symmetric 4-bit:
+# damp_percent=0.1, kernel_impl=cuda_immediate, block_size=512, large_update_impl=addmm
+#
+# Section A: Phase-1 truncation ablation (single-seed screening).
+# Fix the best known execution setting and compare the four truncation families.
+for threshold_method, eps_values in [
+    ("abs", [1e-6, 1e-5, 1e-4]),
+    ("percent", [1, 2, 5, 10]),
+    ("mean_trimmed", [1e-3, 1e-2, 1e-1]),
+    ("energy", [1e-6, 1e-5, 1e-4, 1e-3]),
+]:
+    for eps in eps_values:
+        experiments.append({
+            "name": (
+                f"Trunc_W4_Sym_{threshold_method}_{eps}_"
+                f"cuda_immediate_fp32_addmm_block512_seed40"
+            ),
+            "section": "trunc_threshold_phase1",
+            "mode": "eigh",
+            "w_bits": 4,
+            "group": 128,
+            "sym": True,
+            "algo": "TruncGPTQ",
+            "adaptive_eps": False,
+            "eps": eps,
+            "threshold_method": threshold_method,
+            "batch_size": 32,
+            "beta": 1.0,
+            "rotate_weights": False,
+            "kernel_impl": "cuda_immediate",
+            "accum_dtype": "fp32",
+            "large_update_impl": "addmm",
+            "normalize_hinv_diag": True,
+            "block_size": 512,
+            "seed": 40,
+        })
 
 
 def run_command(cmd_list):
@@ -86,7 +96,7 @@ def main():
                 "--seed", str(exp.get("seed", 42)),
                 "--eval_mode", EVAL_MODE,
                 "--batch_size", str(exp['batch_size']),
-                "--threshold_method", "energy",
+                "--threshold_method", exp.get("threshold_method", "energy"),
                 "--sketch_ratio", "1.0",
                 "--no_save",
                 "--beta", str(exp['beta']),

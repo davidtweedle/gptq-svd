@@ -58,6 +58,7 @@ def process_sketch(
     torch.cuda.empty_cache()
 
     _, S, Vh = torch.linalg.svd(R_reduced, full_matrices=False)
+    L = S ** 2
 
     if threshold_method == "energy":
         energy = S ** 2
@@ -65,6 +66,11 @@ def process_sketch(
         current_rank = int((torch.cumsum(energy, dim=0) <= target).sum().item())
         if current_rank < len(S):
             current_rank += 1
+    elif threshold_method == "abs":
+        current_rank = int((L > threshold).sum().item())
+    elif threshold_method == "percent":
+        drop_frac = min(max(float(threshold) / 100.0, 0.0), 1.0)
+        current_rank = int(math.ceil((1.0 - drop_frac) * len(S)))
     elif threshold_method == "mean_trimmed":
         ref_k = min(33, len(S))
         ref_val = torch.mean(S[1:ref_k]) if len(S) > 1 else S[0]
@@ -102,20 +108,27 @@ def process_hessian_alt(
     H_double = H.to(dtype=torch.float64)
     L, V = torch.linalg.eigh(H_double)
     S = torch.sqrt(L.clamp(min=1e-12)).flip(0)
+    L = L.flip(0)
     Vh = V.T.flip(0)
-    del H_double, L, V
+    del H_double, V
     if threshold_method == "energy":
         energy = S ** 2
         target = (1.0 - threshold) * torch.sum(energy)
         current_rank = int((torch.cumsum(energy, dim=0) <= target).sum())
         if current_rank < len(S):
             current_rank += 1
+    elif threshold_method == "abs":
+        current_rank = int((L > threshold).sum().item())
+    elif threshold_method == "percent":
+        drop_frac = min(max(float(threshold) / 100.0, 0.0), 1.0)
+        current_rank = int(math.ceil((1.0 - drop_frac) * len(S)))
     elif threshold_method == "mean_trimmed":
         ref_k = min(33, len(S))
         ref_val = torch.mean(S[1:ref_k]) if len(S) > 1 else S[0]
         current_rank = int((S > threshold * ref_val).sum().item())
     else:
         current_rank = int(len(S))
+    current_rank = max(1, min(current_rank, len(S)))
     S = S[:current_rank]
     Vh = Vh[:current_rank, :]
     S_inv = 1.0 / S

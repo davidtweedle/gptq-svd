@@ -112,8 +112,8 @@ def get_args():
             help="Quantization Strategy: 'svd' (Ours), 'gptq' (Reference), or 'baseline' (RTN)"
             )
     quant_group.add_argument(
-            "--threshold_method", type=str, default="mean_trimmed", choices=["mean_trimmed", "energy"],
-            help="Strategy for rank selection. 'mean_trimmed' uses mean(S[1:32]). 'energy' preserves (1-eps) variance."
+            "--threshold_method", type=str, default="mean_trimmed", choices=["mean_trimmed", "energy", "abs", "percent"],
+            help="Strategy for rank selection. 'mean_trimmed' uses mean(S[1:32]). 'energy' preserves (1-eps) variance. 'abs' keeps eigenvalues L > eps. 'percent' drops the bottom eps percent of directions."
             )
     quant_group.add_argument(
             "--actorder", action="store_true",
