@@ -21,21 +21,23 @@ experiments = []
 # Best tuned GPTQ baseline so far for symmetric 4-bit:
 # damp_percent=0.1, kernel_impl=cuda_immediate, block_size=512, large_update_impl=addmm
 #
-# Section A: Phase-1 truncation ablation (single-seed screening).
-# Fix the best known execution setting and compare the four truncation families.
-for threshold_method, eps_values in [
-    ("abs", [1e-6, 1e-5, 1e-4]),
-    ("percent", [1, 2, 5, 10]),
-    ("mean_trimmed", [1e-3, 1e-2, 1e-1]),
-    ("energy", [1e-6, 1e-5, 1e-4, 1e-3]),
+# Section A: Phase-2 truncation ablation (multi-seed shortlist).
+# Keep the three best phase-1 candidates:
+# - percent=1
+# - energy=1e-6
+# - mean_trimmed=0.01
+for threshold_method, eps in [
+    ("percent", 1.0),
+    ("energy", 1e-6),
+    ("mean_trimmed", 0.01),
 ]:
-    for eps in eps_values:
+    for seed in SEEDS:
         experiments.append({
             "name": (
                 f"Trunc_W4_Sym_{threshold_method}_{eps}_"
-                f"cuda_immediate_fp32_addmm_block512_seed40"
+                f"cuda_immediate_fp32_addmm_block512_seed{seed}"
             ),
-            "section": "trunc_threshold_phase1",
+            "section": "trunc_threshold_phase2",
             "mode": "eigh",
             "w_bits": 4,
             "group": 128,
@@ -52,7 +54,7 @@ for threshold_method, eps_values in [
             "large_update_impl": "addmm",
             "normalize_hinv_diag": True,
             "block_size": 512,
-            "seed": 40,
+            "seed": seed,
         })
 
 
