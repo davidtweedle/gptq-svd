@@ -338,12 +338,18 @@ def main():
                 H_matrix = accumulator.get_hessian()
                 had_mat = accumulator.had_mat
                 del accumulator
-                R, R_x, perm = process_hessian_alt(
+                spectral_stats = None
+                hessian_result = process_hessian_alt(
                         H=H_matrix,
                         threshold=current_eps,
                         threshold_method=args.threshold_method,
-                        normalize_hinv_diag=args.normalize_hinv_diag
+                        normalize_hinv_diag=args.normalize_hinv_diag,
+                        collect_spectral_stats=args.collect_spectral_stats
                         )
+                if args.collect_spectral_stats:
+                    R, R_x, perm, spectral_stats = hessian_result
+                else:
+                    R, R_x, perm = hessian_result
                 shared_stats = {"R": R, "R_x": R_x, "perm": perm, "had_mat": had_mat}
             elif args.mode == 'test':
                 H_matrix = accumulator_hessian.get_hessian()
@@ -401,7 +407,10 @@ def main():
                 submodule.weight.copy_(final_W)
                 solve_time = time.time() - solve_start
                 logging.info(f"   {name: <15} | Rank: {str(used_rank): <4} | Time: {solve_time:.2f}s") 
-                experiment_log["layer_stats"].append({"name": f"layer_{i}.{name}", "rank": used_rank, "time": solve_time})
+                layer_record = {"name": f"layer_{i}.{name}", "rank": used_rank, "time": solve_time}
+                if args.collect_spectral_stats and args.mode == "eigh" and spectral_stats is not None:
+                    layer_record["spectral_stats"] = spectral_stats
+                experiment_log["layer_stats"].append(layer_record)
                 cleanup()
             del shared_stats
             cleanup()

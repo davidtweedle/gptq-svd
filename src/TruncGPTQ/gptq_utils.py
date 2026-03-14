@@ -37,6 +37,72 @@ jax.config.update("jax_use_magma", 'on')
 jax.config.update("jax_platforms", "cuda,cpu")
 
 
+def _safe_div(num: float, den: float) -> float:
+    if den == 0.0:
+        return 0.0
+    return num / den
+
+
+def compute_compact_spectral_stats(eigvals_desc: torch.Tensor, trunc_rank: int) -> dict:
+    eigvals = eigvals_desc.to(dtype=torch.float64).clamp(min=0)
+    n = int(eigvals.numel())
+    total = float(eigvals.sum().item())
+    positive = eigvals[eigvals > 0]
+    pos_n = int(positive.numel())
+
+    if pos_n > 0 and float(positive.sum().item()) > 0.0:
+        probs = positive / positive.sum()
+        spectral_entropy = float((-(probs * torch.log(probs))).sum().item())
+        spectral_entropy_norm = _safe_div(spectral_entropy, math.log(max(pos_n, 2)))
+        effective_rank = math.exp(spectral_entropy)
+    else:
+        spectral_entropy = 0.0
+        spectral_entropy_norm = 0.0
+        effective_rank = 0.0
+
+    energy_cumsum = torch.cumsum(eigvals, dim=0)
+
+    def rank_for_energy(frac: float) -> int:
+        if total <= 0.0:
+            return 0
+        target = frac * total
+        idx = int(torch.searchsorted(
+            energy_cumsum,
+            torch.tensor(target, dtype=eigvals.dtype, device=eigvals.device)
+        ).item())
+        return min(idx + 1, n)
+
+    top1 = float(eigvals[0].item()) if n > 0 else 0.0
+    top2 = float(eigvals[1].item()) if n > 1 else 0.0
+    top4_mean = float(eigvals[: min(4, n)].mean().item()) if n > 0 else 0.0
+    top8_mean = float(eigvals[: min(8, n)].mean().item()) if n > 0 else 0.0
+    top32_mean = float(eigvals[: min(32, n)].mean().item()) if n > 0 else 0.0
+    top64_mean = float(eigvals[: min(64, n)].mean().item()) if n > 0 else 0.0
+
+    return {
+        "full_dim": n,
+        "positive_rank": pos_n,
+        "trunc_rank": int(trunc_rank),
+        "trunc_rank_frac": _safe_div(float(trunc_rank), float(n)),
+        "rank_90_energy": rank_for_energy(0.90),
+        "rank_95_energy": rank_for_energy(0.95),
+        "rank_99_energy": rank_for_energy(0.99),
+        "rank_999_energy": rank_for_energy(0.999),
+        "top1_eig": top1,
+        "top2_eig": top2,
+        "top1_over_top2": _safe_div(top1, top2),
+        "top1_over_mean32": _safe_div(top1, top32_mean),
+        "top4_mean": top4_mean,
+        "top8_mean": top8_mean,
+        "top32_mean": top32_mean,
+        "top64_mean": top64_mean,
+        "tail32_energy_frac": _safe_div(float(eigvals[32:].sum().item()) if n > 32 else 0.0, total),
+        "tail64_energy_frac": _safe_div(float(eigvals[64:].sum().item()) if n > 64 else 0.0, total),
+        "spectral_entropy": spectral_entropy,
+        "spectral_entropy_norm": spectral_entropy_norm,
+        "effective_rank": effective_rank,
+    }
+
 
 def process_sketch(
         sketch: torch.Tensor,
@@ -103,8 +169,12 @@ def process_hessian_alt(
         threshold: float = 0.0005,
         threshold_method: str = "mean_trimmed",
         had_mat: Optional[torch.Tensor] = None,
-        normalize_hinv_diag: bool = True
-        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        normalize_hinv_diag: bool = True,
+        collect_spectral_stats: bool = False
+        ) -> Union[
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict],
+        ]:
     H_double = H.to(dtype=torch.float64)
     L, V = torch.linalg.eigh(H_double)
     S = torch.sqrt(L.clamp(min=1e-12)).flip(0)
@@ -129,6 +199,9 @@ def process_hessian_alt(
     else:
         current_rank = int(len(S))
     current_rank = max(1, min(current_rank, len(S)))
+    spectral_stats = None
+    if collect_spectral_stats:
+        spectral_stats = compute_compact_spectral_stats(L, current_rank)
     S = S[:current_rank]
     Vh = Vh[:current_rank, :]
     S_inv = 1.0 / S
@@ -163,6 +236,8 @@ def process_hessian_alt(
     else:
         R = R_prime
 
+    if collect_spectral_stats:
+        return R, R_x, perm, spectral_stats
     return R, R_x, perm
 
 

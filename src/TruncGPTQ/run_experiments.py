@@ -12,7 +12,7 @@ DATASET = "wikitext2"
 DEVICE = "cuda:0"
 EVAL_MODE = "regular"
 EVAL_BATCH_SIZE = 4
-SEEDS = [40, 41, 42, 43, 44]
+SEEDS = [40]
 
 TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 BASE_SAVE_DIR = Path(f"tuning_results_{TIMESTAMP}")
@@ -21,14 +21,18 @@ experiments = []
 # Best tuned GPTQ baseline so far for symmetric 4-bit:
 # damp_percent=0.1, kernel_impl=cuda_immediate, block_size=512, large_update_impl=addmm
 #
-# Section A: Phase-2 truncation ablation (multi-seed shortlist).
-# Keep the three best phase-1 candidates:
-# - percent=1
-# - energy=1e-6
-# - mean_trimmed=0.01
+# Section A: Spectral-stats collection pass for heuristic design.
+# Keep a small but diverse truncation set:
+# - conservative energy
+# - aggressive energy
+# - mild percent
+# - stronger percent
+# - relative-threshold rule
 for threshold_method, eps in [
-    ("percent", 1.0),
     ("energy", 1e-6),
+    ("energy", 1e-3),
+    ("percent", 1.0),
+    ("percent", 2.0),
     ("mean_trimmed", 0.01),
 ]:
     for seed in SEEDS:
@@ -37,7 +41,7 @@ for threshold_method, eps in [
                 f"Trunc_W4_Sym_{threshold_method}_{eps}_"
                 f"cuda_immediate_fp32_addmm_block512_seed{seed}"
             ),
-            "section": "trunc_threshold_phase2",
+            "section": "trunc_spectral_stats",
             "mode": "eigh",
             "w_bits": 4,
             "group": 128,
@@ -53,6 +57,7 @@ for threshold_method, eps in [
             "accum_dtype": "fp32",
             "large_update_impl": "addmm",
             "normalize_hinv_diag": True,
+            "collect_spectral_stats": True,
             "block_size": 512,
             "seed": seed,
         })
@@ -120,6 +125,8 @@ def main():
                 cmd.extend(["--eps", str(exp['eps'])])
                 if exp.get("adaptive_eps", False):
                     cmd.append("--adaptive_eps")
+                if exp.get("collect_spectral_stats", False):
+                    cmd.append("--collect_spectral_stats")
             if exp["mode"] == "gptq":
                 cmd.extend(["--damp_percent", str(exp.get("damp_percent", 0.01))])
             if exp.get("sym", False):

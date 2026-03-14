@@ -176,6 +176,11 @@ def get_args():
             help="Block size for GPTQ/TruncGPTQ inner block quantization."
             )
     quant_group.add_argument(
+            "--collect_spectral_stats",
+            action="store_true",
+            help="During TruncGPTQ eigh runs, log compact per-layer spectral features into results.json."
+            )
+    quant_group.add_argument(
             "--qronos_alpha",
             type=float,
             default=1e-6,
