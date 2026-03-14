@@ -6,8 +6,10 @@ from pathlib import Path
 import pandas as pd
 
 
-REL_ERR_RE = re.compile(r"Relative prediction error:\s+([0-9eE+\-\.]+)")
-LAYER_RE = re.compile(r"layer_(\d+)\.([A-Za-z0-9_\.]+)\s+\|\s+Rank:\s+([^\|]+)\s+\|\s+Time:\s+([0-9eE+\-\.]+)s")
+REL_ERR_RE = re.compile(r"Relative prediction error:\s*([0-9eE+\-\.]+)")
+LAYER_RE = re.compile(
+    r"INFO:\s+([A-Za-z0-9_\.]+)\s+\|\s+Rank:\s+([^\|]+)\s+\|\s+Time:\s+([0-9eE+\-\.]+)s"
+)
 
 
 def parse_args():
@@ -50,8 +52,8 @@ def load_config(result_file: Path):
     return cfg
 
 
-def parse_log(log_file: Path, config: dict):
-    rows = []
+def parse_log(log_file: Path):
+    parsed = []
     current_rel_err = None
     with open(log_file, "r") as f:
         for line in f:
@@ -62,34 +64,12 @@ def parse_log(log_file: Path, config: dict):
 
             layer_match = LAYER_RE.search(line)
             if layer_match:
-                layer_idx = int(layer_match.group(1))
-                submodule = layer_match.group(2)
-                rank = parse_rank(layer_match.group(3))
-                layer_time_s = float(layer_match.group(4))
-                rows.append(
-                    {
-                        "experiment": log_file.parent.name,
-                        "layer_index": layer_idx,
-                        "submodule": submodule,
-                        "layer_name": f"layer_{layer_idx}.{submodule}",
-                        "rank": rank,
-                        "layer_time_s": layer_time_s,
-                        "relative_output_error": current_rel_err,
-                        "threshold_method": config.get("threshold_method"),
-                        "eps": config.get("eps"),
-                        "mode": config.get("mode"),
-                        "kernel_impl": config.get("kernel_impl"),
-                        "large_update_impl": config.get("large_update_impl"),
-                        "block_size": config.get("block_size"),
-                        "w_bits": config.get("w_bits"),
-                        "sym": config.get("sym"),
-                        "beta": config.get("beta"),
-                        "seed": config.get("seed"),
-                        "quantized_ppl": config.get("quantized_ppl"),
-                    }
-                )
+                submodule = layer_match.group(1)
+                rank = parse_rank(layer_match.group(2))
+                layer_time_s = float(layer_match.group(3))
+                parsed.append((submodule, rank, layer_time_s, current_rel_err))
                 current_rel_err = None
-    return rows
+    return parsed
 
 
 def load_rows(results_dir: Path):
@@ -98,8 +78,51 @@ def load_rows(results_dir: Path):
         log_file = exp_dir / "quantization.log"
         if not log_file.exists():
             continue
-        config = load_config(exp_dir / "results.json")
-        rows.extend(parse_log(log_file, config))
+        result_file = exp_dir / "results.json"
+        config = load_config(result_file)
+        if not result_file.exists():
+            continue
+        with open(result_file, "r") as f:
+            payload = json.load(f)
+        layer_stats = payload.get("layer_stats", [])
+        parsed = parse_log(log_file)
+
+        count = min(len(layer_stats), len(parsed))
+        for js, lg in zip(layer_stats[:count], parsed[:count]):
+            layer_name = js.get("name")
+            layer_index = None
+            submodule = lg[0]
+            if isinstance(layer_name, str) and layer_name.startswith("layer_") and "." in layer_name:
+                prefix, submodule_json = layer_name.split(".", 1)
+                try:
+                    layer_index = int(prefix.replace("layer_", ""))
+                except ValueError:
+                    layer_index = None
+                if submodule_json:
+                    submodule = submodule_json
+
+            rows.append(
+                {
+                    "experiment": exp_dir.name,
+                    "layer_index": layer_index,
+                    "submodule": submodule,
+                    "layer_name": layer_name,
+                    "rank": js.get("rank", lg[1]),
+                    "layer_time_s": js.get("time", lg[2]),
+                    "relative_output_error": lg[3],
+                    "threshold_method": config.get("threshold_method"),
+                    "eps": config.get("eps"),
+                    "mode": config.get("mode"),
+                    "kernel_impl": config.get("kernel_impl"),
+                    "large_update_impl": config.get("large_update_impl"),
+                    "block_size": config.get("block_size"),
+                    "w_bits": config.get("w_bits"),
+                    "sym": config.get("sym"),
+                    "beta": config.get("beta"),
+                    "seed": config.get("seed"),
+                    "quantized_ppl": config.get("quantized_ppl"),
+                }
+            )
     return pd.DataFrame(rows)
 
 
