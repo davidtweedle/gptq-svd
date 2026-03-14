@@ -198,6 +198,56 @@ def print_percent_layers(df: pd.DataFrame):
     print(summary.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
 
 
+def print_best_energy_per_layer(df: pd.DataFrame):
+    energy_df = df[df["threshold_method"] == "energy"].copy()
+    if energy_df.empty:
+        return
+    rows = []
+    for layer_name, sub in energy_df.groupby("layer_name"):
+        best = sub.sort_values(
+            ["relative_output_error", "rank", "eps"],
+            ascending=[True, False, True],
+        ).iloc[0]
+        rows.append(
+            {
+                "layer_name": layer_name,
+                "best_energy_eps": best["eps"],
+                "rank": best["rank"],
+                "relative_output_error": best["relative_output_error"],
+                "quantized_ppl": best["quantized_ppl"],
+                "experiment": best["experiment"],
+            }
+        )
+    out = pd.DataFrame(rows).sort_values(["best_energy_eps", "relative_output_error"])
+    print("\n=== BEST ENERGY EPS PER LAYER ===")
+    print(out.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
+
+
+def print_best_percent_per_layer(df: pd.DataFrame):
+    percent_df = df[df["threshold_method"] == "percent"].copy()
+    if percent_df.empty:
+        return
+    rows = []
+    for layer_name, sub in percent_df.groupby("layer_name"):
+        best = sub.sort_values(
+            ["relative_output_error", "rank", "eps"],
+            ascending=[True, False, True],
+        ).iloc[0]
+        rows.append(
+            {
+                "layer_name": layer_name,
+                "best_percent": best["eps"],
+                "rank": best["rank"],
+                "relative_output_error": best["relative_output_error"],
+                "quantized_ppl": best["quantized_ppl"],
+                "experiment": best["experiment"],
+            }
+        )
+    out = pd.DataFrame(rows).sort_values(["best_percent", "relative_output_error"])
+    print("\n=== BEST FIXED-PERCENT VALUE PER LAYER ===")
+    print(out.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
+
+
 def main():
     args = parse_args()
     df = load_rows(Path(args.results_dir))
@@ -208,6 +258,8 @@ def main():
     print_method_summary(df)
     print_layer_sensitivity(df)
     print_best_per_layer(df, args.top_k)
+    print_best_energy_per_layer(df)
+    print_best_percent_per_layer(df)
     print_percent_layers(df)
 
 
