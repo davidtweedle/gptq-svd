@@ -28,6 +28,24 @@ def parse_args():
         default=5,
         help="How many best configs to show per layer",
     )
+    parser.add_argument(
+        "--oracle_baseline_method",
+        type=str,
+        default="energy",
+        help="Threshold method used as the per-layer baseline for the strongest-tolerable oracle",
+    )
+    parser.add_argument(
+        "--oracle_baseline_eps",
+        type=float,
+        default=1e-6,
+        help="Epsilon/value used for the baseline truncation config in the strongest-tolerable oracle",
+    )
+    parser.add_argument(
+        "--oracle_tolerance_factor",
+        type=float,
+        default=1.1,
+        help="Allowed multiplicative increase over baseline per-layer relative output error",
+    )
     return parser.parse_args()
 
 
@@ -248,6 +266,86 @@ def print_best_percent_per_layer(df: pd.DataFrame):
     print(out.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
 
 
+def print_strongest_tolerable_per_layer(
+    df: pd.DataFrame,
+    baseline_method: str,
+    baseline_eps: float,
+    tolerance_factor: float,
+):
+    baseline_df = df[
+        (df["threshold_method"] == baseline_method) & (df["eps"] == baseline_eps)
+    ].copy()
+    if baseline_df.empty:
+        print("\n=== STRONGEST-TOLERABLE PER LAYER ===")
+        print(
+            f"No baseline rows found for threshold_method={baseline_method!r}, eps={baseline_eps}."
+        )
+        return
+
+    baseline = (
+        baseline_df.groupby("layer_name")
+        .agg(
+            baseline_rel_err=("relative_output_error", "mean"),
+            baseline_rank=("rank", "mean"),
+            baseline_ppl=("quantized_ppl", "mean"),
+        )
+        .reset_index()
+    )
+    merged = df.merge(baseline, on="layer_name", how="inner")
+    merged["oracle_tau"] = tolerance_factor * merged["baseline_rel_err"]
+    feasible = merged[merged["relative_output_error"] <= merged["oracle_tau"]].copy()
+
+    print("\n=== STRONGEST-TOLERABLE PER LAYER ===")
+    print(
+        "Baseline:",
+        f"threshold_method={baseline_method}, eps={baseline_eps}, tolerance_factor={tolerance_factor}",
+    )
+
+    if feasible.empty:
+        print("No feasible rows met the oracle tolerance.")
+        return
+
+    rows = []
+    for layer_name, sub in feasible.groupby("layer_name"):
+        chosen = sub.sort_values(
+            [
+                "rank",
+                "relative_output_error",
+                "eps",
+            ],
+            ascending=[True, True, True],
+        ).iloc[0]
+        rows.append(
+            {
+                "layer_name": layer_name,
+                "oracle_tau": chosen["oracle_tau"],
+                "baseline_rel_err": chosen["baseline_rel_err"],
+                "baseline_rank": chosen["baseline_rank"],
+                "chosen_method": chosen["threshold_method"],
+                "chosen_eps": chosen["eps"],
+                "chosen_rank": chosen["rank"],
+                "rank_drop_vs_baseline": chosen["baseline_rank"] - chosen["rank"],
+                "chosen_rel_err": chosen["relative_output_error"],
+                "quantized_ppl": chosen["quantized_ppl"],
+                "experiment": chosen["experiment"],
+            }
+        )
+
+    out = pd.DataFrame(rows).sort_values(
+        ["rank_drop_vs_baseline", "chosen_rel_err"], ascending=[False, True]
+    )
+    print(out.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
+
+    policy = (
+        out.groupby(["chosen_method", "chosen_eps"])
+        .size()
+        .reset_index(name="layers")
+        .sort_values(["layers", "chosen_method", "chosen_eps"], ascending=[False, True, True])
+    )
+    print("\n=== STRONGEST-TOLERABLE POLICY MIX ===")
+    print(policy.to_string(index=False, float_format=lambda x: f"{x:.6f}"))
+
+
 def main():
     args = parse_args()
     df = load_rows(Path(args.results_dir))
@@ -260,6 +358,12 @@ def main():
     print_best_per_layer(df, args.top_k)
     print_best_energy_per_layer(df)
     print_best_percent_per_layer(df)
+    print_strongest_tolerable_per_layer(
+        df,
+        baseline_method=args.oracle_baseline_method,
+        baseline_eps=args.oracle_baseline_eps,
+        tolerance_factor=args.oracle_tolerance_factor,
+    )
     print_percent_layers(df)
 
 
