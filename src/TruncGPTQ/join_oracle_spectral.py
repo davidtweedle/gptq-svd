@@ -1,6 +1,7 @@
 import argparse
 import re
 from pathlib import Path
+from io import StringIO
 
 import pandas as pd
 
@@ -50,15 +51,8 @@ def parse_oracle_table(path: Path) -> pd.DataFrame:
     if len(section) < 2:
         raise ValueError(f"Oracle section in {path} is empty")
 
-    header = re.split(r"\s{2,}", section[0].strip())
-    rows = []
-    for line in section[1:]:
-        parts = re.split(r"\s{2,}", line.strip())
-        if len(parts) != len(header):
-            continue
-        rows.append(dict(zip(header, parts)))
-
-    df = pd.DataFrame(rows)
+    table_text = "\n".join(section)
+    df = pd.read_fwf(StringIO(table_text))
     if df.empty:
         raise ValueError(f"Failed to parse oracle rows from {path}")
 
